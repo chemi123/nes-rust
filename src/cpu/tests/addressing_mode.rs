@@ -1,5 +1,5 @@
 use crate::cpu::Cpu;
-use crate::cpu::constants::*;
+use crate::cpu::opcodes::*;
 
 #[test]
 fn test_indirect_x_zero_page_wrap() {

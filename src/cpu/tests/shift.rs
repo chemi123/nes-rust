@@ -1,5 +1,5 @@
 use crate::cpu::Cpu;
-use crate::cpu::constants::*;
+use crate::cpu::opcodes::*;
 
 // ASL Accumulator
 #[test]

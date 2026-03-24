@@ -16,6 +16,14 @@ pub(super) enum Flag {
 }
 
 impl Cpu {
+    pub(super) fn has_flag(&self, flag: Flag) -> bool {
+        self.processor_status & flag as u8 != 0
+    }
+
+    pub(super) fn carry_bit(&self) -> u8 {
+        self.processor_status & Flag::Carry as u8
+    }
+
     pub(super) fn set_flag(&mut self, flag: Flag, value: bool) {
         if value {
             self.processor_status |= flag as u8;

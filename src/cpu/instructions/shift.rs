@@ -34,7 +34,7 @@ impl Cpu {
     }
 
     pub(in crate::cpu) fn rol(&mut self, mode: AddressingMode) {
-        let old_carry = self.processor_status & (Flag::Carry as u8);
+        let old_carry = self.carry_bit();
         if mode == AddressingMode::Accumulator {
             self.set_flag(Flag::Carry, self.register_a & SIGN_BIT != 0);
             self.register_a = (self.register_a << 1) | old_carry;
@@ -50,7 +50,7 @@ impl Cpu {
     }
 
     pub(in crate::cpu) fn ror(&mut self, mode: AddressingMode) {
-        let old_carry = self.processor_status & (Flag::Carry as u8);
+        let old_carry = self.carry_bit();
         if mode == AddressingMode::Accumulator {
             self.set_flag(Flag::Carry, self.register_a & LOW_BIT != 0);
             self.register_a = (self.register_a >> 1) | (old_carry << 7);

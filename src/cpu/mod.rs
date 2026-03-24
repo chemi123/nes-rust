@@ -244,9 +244,6 @@ impl Cpu {
 
     pub(super) fn update_zero_and_negative_flags(&mut self, result: u8) {
         self.set_flag(flags::Flag::Zero, result == 0);
-        self.set_flag(
-            flags::Flag::Negative,
-            result & flags::Flag::Negative as u8 != 0,
-        );
+        self.set_flag(flags::Flag::Negative, result & flags::SIGN_BIT != 0);
     }
 }

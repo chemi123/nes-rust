@@ -43,28 +43,44 @@ impl Cpu {
                 // LDA
                 LDA_IMMEDIATE => self.lda(AddressingMode::Immediate),
                 LDA_ZERO_PAGE => self.lda(AddressingMode::ZeroPage),
+                LDA_ZERO_PAGE_X => self.lda(AddressingMode::ZeroPage_X),
                 LDA_ABSOLUTE => self.lda(AddressingMode::Absolute),
+                LDA_ABSOLUTE_X => self.lda(AddressingMode::Absolute_X),
+                LDA_ABSOLUTE_Y => self.lda(AddressingMode::Absolute_Y),
+                LDA_INDIRECT_X => self.lda(AddressingMode::Indirect_X),
+                LDA_INDIRECT_Y => self.lda(AddressingMode::Indirect_Y),
 
                 // LDX
                 LDX_IMMEDIATE => self.ldx(AddressingMode::Immediate),
                 LDX_ZERO_PAGE => self.ldx(AddressingMode::ZeroPage),
+                LDX_ZERO_PAGE_Y => self.ldx(AddressingMode::ZeroPage_Y),
                 LDX_ABSOLUTE => self.ldx(AddressingMode::Absolute),
+                LDX_ABSOLUTE_Y => self.ldx(AddressingMode::Absolute_Y),
 
                 // LDY
                 LDY_IMMEDIATE => self.ldy(AddressingMode::Immediate),
                 LDY_ZERO_PAGE => self.ldy(AddressingMode::ZeroPage),
+                LDY_ZERO_PAGE_X => self.ldy(AddressingMode::ZeroPage_X),
                 LDY_ABSOLUTE => self.ldy(AddressingMode::Absolute),
+                LDY_ABSOLUTE_X => self.ldy(AddressingMode::Absolute_X),
 
                 // STA
                 STA_ZERO_PAGE => self.sta(AddressingMode::ZeroPage),
+                STA_ZERO_PAGE_X => self.sta(AddressingMode::ZeroPage_X),
                 STA_ABSOLUTE => self.sta(AddressingMode::Absolute),
+                STA_ABSOLUTE_X => self.sta(AddressingMode::Absolute_X),
+                STA_ABSOLUTE_Y => self.sta(AddressingMode::Absolute_Y),
+                STA_INDIRECT_X => self.sta(AddressingMode::Indirect_X),
+                STA_INDIRECT_Y => self.sta(AddressingMode::Indirect_Y),
 
                 // STX
                 STX_ZERO_PAGE => self.stx(AddressingMode::ZeroPage),
+                STX_ZERO_PAGE_Y => self.stx(AddressingMode::ZeroPage_Y),
                 STX_ABSOLUTE => self.stx(AddressingMode::Absolute),
 
                 // STY
                 STY_ZERO_PAGE => self.sty(AddressingMode::ZeroPage),
+                STY_ZERO_PAGE_X => self.sty(AddressingMode::ZeroPage_X),
                 STY_ABSOLUTE => self.sty(AddressingMode::Absolute),
 
                 // Transfer

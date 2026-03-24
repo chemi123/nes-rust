@@ -1,24 +1,40 @@
 // Load instructions
 pub(super) const LDA_IMMEDIATE: u8 = 0xa9;
 pub(super) const LDA_ZERO_PAGE: u8 = 0xa5;
+pub(super) const LDA_ZERO_PAGE_X: u8 = 0xb5;
 pub(super) const LDA_ABSOLUTE: u8 = 0xad;
+pub(super) const LDA_ABSOLUTE_X: u8 = 0xbd;
+pub(super) const LDA_ABSOLUTE_Y: u8 = 0xb9;
+pub(super) const LDA_INDIRECT_X: u8 = 0xa1;
+pub(super) const LDA_INDIRECT_Y: u8 = 0xb1;
 
 pub(super) const LDX_IMMEDIATE: u8 = 0xa2;
 pub(super) const LDX_ZERO_PAGE: u8 = 0xa6;
+pub(super) const LDX_ZERO_PAGE_Y: u8 = 0xb6;
 pub(super) const LDX_ABSOLUTE: u8 = 0xae;
+pub(super) const LDX_ABSOLUTE_Y: u8 = 0xbe;
 
 pub(super) const LDY_IMMEDIATE: u8 = 0xa0;
 pub(super) const LDY_ZERO_PAGE: u8 = 0xa4;
+pub(super) const LDY_ZERO_PAGE_X: u8 = 0xb4;
 pub(super) const LDY_ABSOLUTE: u8 = 0xac;
+pub(super) const LDY_ABSOLUTE_X: u8 = 0xbc;
 
 // Store instructions
 pub(super) const STA_ZERO_PAGE: u8 = 0x85;
+pub(super) const STA_ZERO_PAGE_X: u8 = 0x95;
 pub(super) const STA_ABSOLUTE: u8 = 0x8d;
+pub(super) const STA_ABSOLUTE_X: u8 = 0x9d;
+pub(super) const STA_ABSOLUTE_Y: u8 = 0x99;
+pub(super) const STA_INDIRECT_X: u8 = 0x81;
+pub(super) const STA_INDIRECT_Y: u8 = 0x91;
 
 pub(super) const STX_ZERO_PAGE: u8 = 0x86;
+pub(super) const STX_ZERO_PAGE_Y: u8 = 0x96;
 pub(super) const STX_ABSOLUTE: u8 = 0x8e;
 
 pub(super) const STY_ZERO_PAGE: u8 = 0x84;
+pub(super) const STY_ZERO_PAGE_X: u8 = 0x94;
 pub(super) const STY_ABSOLUTE: u8 = 0x8c;
 
 // Transfer instructions

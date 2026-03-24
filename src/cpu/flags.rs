@@ -31,4 +31,9 @@ impl Cpu {
             self.processor_status &= !(flag as u8);
         }
     }
+
+    pub(in crate::cpu) fn update_zero_and_negative_flags(&mut self, result: u8) {
+        self.set_flag(Flag::Zero, result == 0);
+        self.set_flag(Flag::Negative, result & SIGN_BIT != 0);
+    }
 }

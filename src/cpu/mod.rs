@@ -258,8 +258,4 @@ impl Cpu {
         self.write_word(RESET_VECTOR, CARTRIDGE_ROM_START);
     }
 
-    pub(super) fn update_zero_and_negative_flags(&mut self, result: u8) {
-        self.set_flag(flags::Flag::Zero, result == 0);
-        self.set_flag(flags::Flag::Negative, result & flags::SIGN_BIT != 0);
-    }
 }

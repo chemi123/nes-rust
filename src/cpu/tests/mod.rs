@@ -1,0 +1,14 @@
+mod addressing_mode;
+mod arithmetic;
+mod bit;
+mod branch;
+mod compare;
+mod flag;
+mod inc_dec;
+mod jump;
+mod load_store;
+mod logical;
+mod shift;
+mod stack;
+mod system;
+mod transfer;

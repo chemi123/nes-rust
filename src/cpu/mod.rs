@@ -1,8 +1,8 @@
 mod addressing_mode;
-mod opcodes;
 mod flags;
 mod instructions;
 mod memory_access;
+mod opcodes;
 #[cfg(test)]
 mod tests;
 
@@ -21,7 +21,7 @@ pub struct Cpu {
 }
 
 impl Cpu {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Cpu {
             register_a: 0,
             register_x: 0,
@@ -33,11 +33,24 @@ impl Cpu {
         }
     }
 
-    pub(crate) fn run(&mut self, program: &[u8]) {
+    pub fn run(&mut self, program: &[u8]) {
         self.load_cartridge(program);
+        self.run_with_callback(|_| {});
+    }
+
+    pub fn load(&mut self, addr: u16, program: &[u8]) {
+        self.memory.load(addr, program);
+        self.write_word(RESET_VECTOR, addr);
         self.reset();
+    }
+
+    pub fn run_with_callback<F>(&mut self, mut callback: F)
+    where
+        F: FnMut(&mut Cpu),
+    {
         loop {
             let opcode = self.fetch_byte();
+            callback(self);
 
             match opcode {
                 // LDA
@@ -254,8 +267,6 @@ impl Cpu {
     }
 
     fn load_cartridge(&mut self, program: &[u8]) {
-        self.memory.load(CARTRIDGE_ROM_START, program);
-        self.write_word(RESET_VECTOR, CARTRIDGE_ROM_START);
+        self.load(CARTRIDGE_ROM_START, program);
     }
-
 }

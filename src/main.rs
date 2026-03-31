@@ -1,6 +1,7 @@
 mod cpu;
+mod debug;
 mod memory;
 
 fn main() {
-    println!("NES Emulator");
+    debug::snake::run();
 }

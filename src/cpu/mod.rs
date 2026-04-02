@@ -11,13 +11,13 @@ use addressing_mode::AddressingMode;
 use opcodes::*;
 
 pub struct Cpu {
-    pub register_a: u8,
-    pub register_x: u8,
-    pub register_y: u8,
-    pub processor_status: u8,
-    pub stack_pointer: u8,
-    pub program_counter: u16,
-    pub memory: Memory,
+    pub(crate) register_a: u8,
+    pub(crate) register_x: u8,
+    pub(crate) register_y: u8,
+    pub(crate) processor_status: u8,
+    pub(crate) stack_pointer: u8,
+    pub(crate) program_counter: u16,
+    pub(crate) memory: Memory,
 }
 
 impl Cpu {

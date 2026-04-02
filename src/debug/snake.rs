@@ -1,13 +1,23 @@
 use crate::cpu::Cpu;
+use rand::RngExt;
+use sdl2::EventPump;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 
 const SNAKE_GAME_CODE_START: u16 = 0x0600;
+const SCREEN_PIXELS: u16 = 0x400;
 const SCREEN_WIDTH: u32 = 32;
 const SCREEN_HEIGHT: u32 = 32;
 const SCALE: u32 = 10;
+const INPUT_REGISTER: u16 = 0xff;
+const KEY_W: u8 = 0x77;
+const KEY_S: u8 = 0x73;
+const KEY_A: u8 = 0x61;
+const KEY_D: u8 = 0x64;
 
 #[rustfmt::skip]
 const SNAKE_ROM: &[u8] = &[
@@ -33,6 +43,59 @@ const SNAKE_ROM: &[u8] = &[
     0xea, 0xca, 0xd0, 0xfb, 0x60,
 ];
 
+fn color(byte: u8) -> Color {
+    match byte {
+        0 => Color::BLACK,
+        1 => Color::WHITE,
+        2 | 9 => Color::GREY,
+        3 | 10 => Color::RED,
+        4 | 11 => Color::GREEN,
+        5 | 12 => Color::BLUE,
+        6 | 13 => Color::MAGENTA,
+        7 | 14 => Color::YELLOW,
+        _ => Color::CYAN,
+    }
+}
+
+fn handle_user_input(cpu: &mut Cpu, event_pump: &mut EventPump) {
+    for event in event_pump.poll_iter() {
+        match event {
+            Event::Quit { .. }
+            | Event::KeyDown {
+                keycode: Some(Keycode::Escape),
+                ..
+            } => {
+                std::process::exit(0);
+            }
+            Event::KeyDown {
+                keycode: Some(Keycode::W),
+                ..
+            } => {
+                cpu.memory.write(INPUT_REGISTER, KEY_W);
+            }
+            Event::KeyDown {
+                keycode: Some(Keycode::S),
+                ..
+            } => {
+                cpu.memory.write(INPUT_REGISTER, KEY_S);
+            }
+            Event::KeyDown {
+                keycode: Some(Keycode::A),
+                ..
+            } => {
+                cpu.memory.write(INPUT_REGISTER, KEY_A);
+            }
+            Event::KeyDown {
+                keycode: Some(Keycode::D),
+                ..
+            } => {
+                cpu.memory.write(INPUT_REGISTER, KEY_D);
+            }
+            _ => {}
+        }
+    }
+}
+
 pub fn run() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -41,15 +104,41 @@ pub fn run() {
         .position_centered()
         .build()
         .unwrap();
-    let mut canvas = window.into_canvas().present_vsync().build().unwrap();
+    let mut canvas = window.into_canvas().build().unwrap();
 
     canvas.set_draw_color(Color::BLACK);
     canvas.clear();
     canvas.present();
 
+    let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut screen_state = [0u8; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
+    let mut rng = rand::rng();
     let mut cpu = Cpu::new();
+
     cpu.load(SNAKE_GAME_CODE_START, SNAKE_ROM);
-    cpu.run_with_callback(|_cpu| {
-        // TODO: snake game debug logic
+    cpu.run_with_callback(|cpu| {
+        handle_user_input(cpu, &mut event_pump);
+        cpu.memory.write(0xfe, rng.random::<u8>());
+        let mut updated = false;
+        for i in 0..SCREEN_PIXELS {
+            let addr = 0x0200 + i;
+            let color_byte = cpu.memory.read(addr);
+            if screen_state[i as usize] != color_byte {
+                screen_state[i as usize] = color_byte;
+                let x = (i % SCREEN_WIDTH as u16) as i32;
+                let y = (i / SCREEN_WIDTH as u16) as i32;
+                canvas.set_draw_color(color(color_byte));
+                canvas
+                    .fill_rect(Rect::new(x * SCALE as i32, y * SCALE as i32, SCALE, SCALE))
+                    .unwrap();
+                updated = true;
+            }
+        }
+
+        if updated {
+            canvas.present();
+        }
+
+        std::thread::sleep(std::time::Duration::new(0, 70_000));
     });
 }

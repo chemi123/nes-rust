@@ -1,7 +1,7 @@
 mod addressing_mode;
 mod flags;
 mod instructions;
-mod memory_access;
+mod bus_access;
 mod opcodes;
 #[cfg(test)]
 mod tests;
@@ -10,7 +10,7 @@ use crate::memory::{CARTRIDGE_ROM_START, Memory, RESET_VECTOR, STACK_POINTER_INI
 use addressing_mode::AddressingMode;
 use opcodes::*;
 
-pub struct Cpu {
+pub(crate) struct Cpu {
     pub(crate) register_a: u8,
     pub(crate) register_x: u8,
     pub(crate) register_y: u8,

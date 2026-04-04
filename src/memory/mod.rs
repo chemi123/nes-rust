@@ -3,7 +3,7 @@ pub const RESET_VECTOR: u16 = 0xFFFC;
 pub const STACK_BASE: u16 = 0x0100;
 pub const STACK_POINTER_INIT: u8 = 0xFD;
 
-pub struct Memory {
+pub(crate) struct Memory {
     data: [u8; 0x10000],
 }
 

@@ -2,6 +2,11 @@ use crate::memory::STACK_BASE;
 
 use super::Cpu;
 
+pub(crate) trait Bus {
+    fn read(&self, addr: u16) -> u8;
+    fn write(&mut self, addr: u16, value: u8);
+}
+
 impl Cpu {
     pub(super) fn fetch_byte(&mut self) -> u8 {
         let data = self.memory.read(self.program_counter);

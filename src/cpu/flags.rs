@@ -1,4 +1,5 @@
 use super::Cpu;
+use super::bus_access::Bus;
 
 pub(super) const U8_OVERFLOW: u16 = 0x0100;
 pub(super) const SIGN_BIT: u8 = 0b1000_0000;
@@ -15,7 +16,7 @@ pub(super) enum Flag {
     Negative = 0b1000_0000,
 }
 
-impl Cpu {
+impl<B: Bus> Cpu<B> {
     pub(super) fn has_flag(&self, flag: Flag) -> bool {
         self.processor_status & flag as u8 != 0
     }

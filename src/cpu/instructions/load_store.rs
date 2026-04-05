@@ -1,7 +1,8 @@
 use crate::cpu::Cpu;
 use crate::cpu::addressing_mode::AddressingMode;
+use crate::cpu::bus_access::Bus;
 
-impl Cpu {
+impl<B: Bus> Cpu<B> {
     pub(in crate::cpu) fn lda(&mut self, mode: AddressingMode) {
         let addr = self.get_operand_address(mode);
         self.register_a = self.peek_byte(addr);

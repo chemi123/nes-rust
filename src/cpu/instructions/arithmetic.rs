@@ -1,8 +1,9 @@
 use crate::cpu::Cpu;
 use crate::cpu::addressing_mode::AddressingMode;
+use crate::cpu::bus_access::Bus;
 use crate::cpu::flags::{Flag, SIGN_BIT, U8_OVERFLOW};
 
-impl Cpu {
+impl<B: Bus> Cpu<B> {
     pub(in crate::cpu) fn adc(&mut self, mode: AddressingMode) {
         let addr = self.get_operand_address(mode);
         let accumulator = self.register_a;

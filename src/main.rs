@@ -1,7 +1,8 @@
+mod bus;
 mod cpu;
-mod debug;
+// mod debug;
 mod memory;
 
 fn main() {
-    debug::snake::run();
+    // debug::snake::run();
 }

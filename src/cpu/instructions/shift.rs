@@ -1,8 +1,9 @@
 use crate::cpu::Cpu;
 use crate::cpu::addressing_mode::AddressingMode;
+use crate::cpu::bus_access::Bus;
 use crate::cpu::flags::{Flag, LOW_BIT, SIGN_BIT};
 
-impl Cpu {
+impl<B: Bus> Cpu<B> {
     pub(in crate::cpu) fn asl(&mut self, mode: AddressingMode) {
         if mode == AddressingMode::Accumulator {
             self.set_flag(Flag::Carry, self.register_a & SIGN_BIT != 0);

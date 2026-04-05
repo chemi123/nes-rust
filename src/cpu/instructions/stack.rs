@@ -1,7 +1,8 @@
 use crate::cpu::Cpu;
+use crate::cpu::bus_access::Bus;
 use crate::cpu::flags::Flag;
 
-impl Cpu {
+impl<B: Bus> Cpu<B> {
     pub(in crate::cpu) fn pha(&mut self) {
         self.push_byte(self.register_a);
     }

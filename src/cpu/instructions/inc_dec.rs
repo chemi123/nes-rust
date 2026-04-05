@@ -1,7 +1,8 @@
 use crate::cpu::Cpu;
 use crate::cpu::addressing_mode::AddressingMode;
+use crate::cpu::bus_access::Bus;
 
-impl Cpu {
+impl<B: Bus> Cpu<B> {
     pub(in crate::cpu) fn inc(&mut self, mode: AddressingMode) {
         let addr = self.get_operand_address(mode);
         let result = self.peek_byte(addr).wrapping_add(1);

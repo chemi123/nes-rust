@@ -1,27 +1,28 @@
 mod addressing_mode;
+pub mod bus_access;
 mod flags;
 mod instructions;
-mod bus_access;
 mod opcodes;
 #[cfg(test)]
 mod tests;
 
-use crate::memory::{CARTRIDGE_ROM_START, Memory, RESET_VECTOR, STACK_POINTER_INIT};
+use crate::memory::{CARTRIDGE_ROM_START, RESET_VECTOR, STACK_POINTER_INIT};
 use addressing_mode::AddressingMode;
+use bus_access::Bus;
 use opcodes::*;
 
-pub(crate) struct Cpu {
+pub(crate) struct Cpu<B: Bus> {
     pub(crate) register_a: u8,
     pub(crate) register_x: u8,
     pub(crate) register_y: u8,
     pub(crate) processor_status: u8,
     pub(crate) stack_pointer: u8,
     pub(crate) program_counter: u16,
-    pub(crate) memory: Memory,
+    pub(crate) bus: B,
 }
 
-impl Cpu {
-    pub fn new() -> Self {
+impl<B: Bus> Cpu<B> {
+    pub fn new(bus: B) -> Self {
         Cpu {
             register_a: 0,
             register_x: 0,
@@ -29,24 +30,26 @@ impl Cpu {
             processor_status: 0,
             stack_pointer: 0,
             program_counter: 0,
-            memory: Memory::new(),
+            bus: bus,
         }
     }
 
     pub fn run(&mut self, program: &[u8]) {
-        self.load_cartridge(program);
+        self.load_program(program);
+        self.reset();
         self.run_with_callback(|_| {});
     }
 
-    pub fn load(&mut self, addr: u16, program: &[u8]) {
-        self.memory.load(addr, program);
-        self.write_word(RESET_VECTOR, addr);
-        self.reset();
+    fn load_program(&mut self, program: &[u8]) {
+        for (i, &byte) in program.iter().enumerate() {
+            self.bus.write(CARTRIDGE_ROM_START + i as u16, byte);
+        }
+        self.write_word(RESET_VECTOR, CARTRIDGE_ROM_START);
     }
 
     pub fn run_with_callback<F>(&mut self, mut callback: F)
     where
-        F: FnMut(&mut Cpu),
+        F: FnMut(&mut Cpu<B>),
     {
         loop {
             let opcode = self.fetch_byte();
@@ -266,7 +269,7 @@ impl Cpu {
         self.program_counter = self.peek_word(RESET_VECTOR);
     }
 
-    fn load_cartridge(&mut self, program: &[u8]) {
-        self.load(CARTRIDGE_ROM_START, program);
-    }
+    // fn load_cartridge(&mut self, program: &[u8]) {
+    //     self.load(CARTRIDGE_ROM_START, program);
+    // }
 }

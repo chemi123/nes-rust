@@ -1,6 +1,7 @@
 use crate::cpu::Cpu;
+use crate::cpu::bus_access::Bus;
 
-impl Cpu {
+impl<B: Bus> Cpu<B> {
     pub(in crate::cpu) fn jmp_absolute(&mut self) {
         self.program_counter = self.fetch_word();
     }

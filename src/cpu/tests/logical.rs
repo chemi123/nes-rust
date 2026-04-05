@@ -1,10 +1,12 @@
 use crate::cpu::Cpu;
+use crate::bus::NESBus;
+use crate::cpu::bus_access::Bus;
 use crate::cpu::opcodes::*;
 
 // AND
 #[test]
 fn test_and_immediate() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // 0xFF & 0x0F = 0x0F
     cpu.run(&[LDA_IMMEDIATE, 0xFF, AND_IMMEDIATE, 0x0F, BRK]);
     assert_eq!(cpu.register_a, 0x0F);
@@ -12,7 +14,7 @@ fn test_and_immediate() {
 
 #[test]
 fn test_and_zero_flag() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // 0xF0 & 0x0F = 0x00
     cpu.run(&[LDA_IMMEDIATE, 0xF0, AND_IMMEDIATE, 0x0F, BRK]);
     assert_eq!(cpu.register_a, 0x00);
@@ -21,7 +23,7 @@ fn test_and_zero_flag() {
 
 #[test]
 fn test_and_negative_flag() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // 0xFF & 0x80 = 0x80
     cpu.run(&[LDA_IMMEDIATE, 0xFF, AND_IMMEDIATE, 0x80, BRK]);
     assert_eq!(cpu.register_a, 0x80);
@@ -30,8 +32,8 @@ fn test_and_negative_flag() {
 
 #[test]
 fn test_and_zero_page() {
-    let mut cpu = Cpu::new();
-    cpu.memory.write(0x10, 0x0F);
+    let mut cpu = Cpu::new(NESBus::new());
+    cpu.bus.write(0x10, 0x0F);
     cpu.run(&[LDA_IMMEDIATE, 0xFF, AND_ZERO_PAGE, 0x10, BRK]);
     assert_eq!(cpu.register_a, 0x0F);
 }
@@ -39,7 +41,7 @@ fn test_and_zero_page() {
 // ORA
 #[test]
 fn test_ora_immediate() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // 0xF0 | 0x0F = 0xFF
     cpu.run(&[LDA_IMMEDIATE, 0xF0, ORA_IMMEDIATE, 0x0F, BRK]);
     assert_eq!(cpu.register_a, 0xFF);
@@ -47,7 +49,7 @@ fn test_ora_immediate() {
 
 #[test]
 fn test_ora_zero_flag() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // 0x00 | 0x00 = 0x00
     cpu.run(&[LDA_IMMEDIATE, 0x00, ORA_IMMEDIATE, 0x00, BRK]);
     assert_eq!(cpu.register_a, 0x00);
@@ -56,7 +58,7 @@ fn test_ora_zero_flag() {
 
 #[test]
 fn test_ora_negative_flag() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // 0x00 | 0x80 = 0x80
     cpu.run(&[LDA_IMMEDIATE, 0x00, ORA_IMMEDIATE, 0x80, BRK]);
     assert_eq!(cpu.register_a, 0x80);
@@ -65,8 +67,8 @@ fn test_ora_negative_flag() {
 
 #[test]
 fn test_ora_zero_page() {
-    let mut cpu = Cpu::new();
-    cpu.memory.write(0x10, 0x0F);
+    let mut cpu = Cpu::new(NESBus::new());
+    cpu.bus.write(0x10, 0x0F);
     cpu.run(&[LDA_IMMEDIATE, 0xF0, ORA_ZERO_PAGE, 0x10, BRK]);
     assert_eq!(cpu.register_a, 0xFF);
 }
@@ -74,7 +76,7 @@ fn test_ora_zero_page() {
 // EOR
 #[test]
 fn test_eor_immediate() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // 0xFF ^ 0x0F = 0xF0
     cpu.run(&[LDA_IMMEDIATE, 0xFF, EOR_IMMEDIATE, 0x0F, BRK]);
     assert_eq!(cpu.register_a, 0xF0);
@@ -82,7 +84,7 @@ fn test_eor_immediate() {
 
 #[test]
 fn test_eor_zero_flag() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // 0xFF ^ 0xFF = 0x00
     cpu.run(&[LDA_IMMEDIATE, 0xFF, EOR_IMMEDIATE, 0xFF, BRK]);
     assert_eq!(cpu.register_a, 0x00);
@@ -91,7 +93,7 @@ fn test_eor_zero_flag() {
 
 #[test]
 fn test_eor_negative_flag() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // 0x00 ^ 0x80 = 0x80
     cpu.run(&[LDA_IMMEDIATE, 0x00, EOR_IMMEDIATE, 0x80, BRK]);
     assert_eq!(cpu.register_a, 0x80);
@@ -100,8 +102,8 @@ fn test_eor_negative_flag() {
 
 #[test]
 fn test_eor_zero_page() {
-    let mut cpu = Cpu::new();
-    cpu.memory.write(0x10, 0x0F);
+    let mut cpu = Cpu::new(NESBus::new());
+    cpu.bus.write(0x10, 0x0F);
     cpu.run(&[LDA_IMMEDIATE, 0xFF, EOR_ZERO_PAGE, 0x10, BRK]);
     assert_eq!(cpu.register_a, 0xF0);
 }

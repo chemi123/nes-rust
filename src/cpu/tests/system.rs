@@ -1,9 +1,11 @@
 use crate::cpu::Cpu;
+use crate::bus::NESBus;
+use crate::cpu::bus_access::Bus;
 use crate::cpu::opcodes::*;
 
 #[test]
 fn test_nop_does_nothing() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // NOP should not change any state, INX after to verify execution continues
     cpu.run(&[NOP_IMPLIED, NOP_IMPLIED, INX_IMPLIED, BRK]);
     assert_eq!(cpu.register_x, 1);
@@ -14,13 +16,13 @@ fn test_nop_does_nothing() {
 // RTI
 #[test]
 fn test_rti_restores_status_and_pc() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // Pre-write interrupt stack frame at $01FB-$01FD
     // RTI pops: status(SP+1), PC_low(SP+2), PC_high(SP+3)
     // Use TXS to set SP=0xFA so RTI reads from $01FB, $01FC, $01FD
-    cpu.memory.write(0x01FB, 0x01); // status: Carry=1
-    cpu.memory.write(0x01FC, 0x07); // PC low -> $8007
-    cpu.memory.write(0x01FD, 0x80); // PC high
+    cpu.bus.write(0x01FB, 0x01); // status: Carry=1
+    cpu.bus.write(0x01FC, 0x07); // PC low -> $8007
+    cpu.bus.write(0x01FD, 0x80); // PC high
     cpu.run(&[
         LDX_IMMEDIATE, 0xFA,   // $8000
         TXS_IMPLIED,            // $8002: SP=0xFA
@@ -37,11 +39,11 @@ fn test_rti_restores_status_and_pc() {
 
 #[test]
 fn test_rti_clears_break_sets_unused() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // status with Break + Unused + Carry
-    cpu.memory.write(0x01FB, 0b0011_0001);
-    cpu.memory.write(0x01FC, 0x07); // PC low -> $8007
-    cpu.memory.write(0x01FD, 0x80); // PC high
+    cpu.bus.write(0x01FB, 0b0011_0001);
+    cpu.bus.write(0x01FC, 0x07); // PC low -> $8007
+    cpu.bus.write(0x01FD, 0x80); // PC high
     cpu.run(&[
         LDX_IMMEDIATE, 0xFA,   // $8000
         TXS_IMPLIED,            // $8002: SP=0xFA

@@ -1,7 +1,8 @@
 use crate::cpu::Cpu;
+use crate::cpu::bus_access::Bus;
 use crate::cpu::flags::Flag;
 
-impl Cpu {
+impl<B: Bus> Cpu<B> {
     pub(in crate::cpu) fn clc(&mut self) {
         self.set_flag(Flag::Carry, false);
     }

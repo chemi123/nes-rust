@@ -1,10 +1,12 @@
 use crate::cpu::Cpu;
+use crate::bus::NESBus;
+use crate::cpu::bus_access::Bus;
 use crate::cpu::opcodes::*;
 
 // JMP Absolute
 #[test]
 fn test_jmp_absolute() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // JMP $8005, skip INX INX, land on INY
     // program starts at $8000
     // $8000: JMP $8005 (3 bytes)
@@ -20,10 +22,10 @@ fn test_jmp_absolute() {
 // JMP Indirect
 #[test]
 fn test_jmp_indirect() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // Store jump target $8007 at $0200
-    cpu.memory.write(0x0200, 0x07);
-    cpu.memory.write(0x0201, 0x80);
+    cpu.bus.write(0x0200, 0x07);
+    cpu.bus.write(0x0201, 0x80);
     // $8000: JMP ($0200) (3 bytes) -> reads $8007 from $0200
     // $8003: INX
     // $8004: INX
@@ -39,11 +41,11 @@ fn test_jmp_indirect() {
 // JMP Indirect - page boundary bug
 #[test]
 fn test_jmp_indirect_page_boundary_bug() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // Pointer at $02FF: low byte from $02FF, high byte from $0200 (not $0300)
-    cpu.memory.write(0x02FF, 0x07);
-    cpu.memory.write(0x0200, 0x80); // bug: reads from $0200 instead of $0300
-    cpu.memory.write(0x0300, 0x90); // this should NOT be used
+    cpu.bus.write(0x02FF, 0x07);
+    cpu.bus.write(0x0200, 0x80); // bug: reads from $0200 instead of $0300
+    cpu.bus.write(0x0300, 0x90); // this should NOT be used
     cpu.run(&[JMP_INDIRECT, 0xFF, 0x02, INX_IMPLIED, INX_IMPLIED, INX_IMPLIED, INX_IMPLIED, INY_IMPLIED, BRK]);
     assert_eq!(cpu.register_x, 0);
     assert_eq!(cpu.register_y, 1);
@@ -52,7 +54,7 @@ fn test_jmp_indirect_page_boundary_bug() {
 // JSR + RTS
 #[test]
 fn test_jsr_rts() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // $8000: JSR $8005 (3 bytes)
     // $8003: INX (return here after RTS)
     // $8004: BRK
@@ -66,7 +68,7 @@ fn test_jsr_rts() {
 // JSR pushes correct return address
 #[test]
 fn test_jsr_pushes_return_address() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // $8000: JSR $8005 (3 bytes) -> push $8002 (PC-1 = last byte of JSR operand)
     // $8003: BRK
     // $8005: BRK
@@ -78,7 +80,7 @@ fn test_jsr_pushes_return_address() {
 // Nested JSR
 #[test]
 fn test_nested_jsr_rts() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     // $8000: JSR $8006 (3 bytes)    -> call sub1
     // $8003: INX                     -> X=1 after return
     // $8004: INX                     -> X=2

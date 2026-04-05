@@ -1,11 +1,50 @@
-pub(crate) struct Bus {
-    cpu_vram: [u8; 2048],
+use crate::cpu::bus_access::Bus;
+use crate::memory::Memory;
+
+const RAM_START: u16 = 0x0000;
+const RAM_END: u16 = 0x1FFF;
+const RAM_MIRROR_MASK: u16 = 0x07FF;
+
+const PPU_REGISTERS_START: u16 = 0x2000;
+const PPU_REGISTERS_END: u16 = 0x3FFF;
+const PPU_MIRROR_MASK: u16 = 0x2007;
+
+const APU_IO_START: u16 = 0x4000;
+const APU_IO_END: u16 = 0x401F;
+
+pub(crate) const CARTRIDGE_START: u16 = 0x8000;
+const CARTRIDGE_END: u16 = 0xFFFF;
+
+pub(crate) struct NESBus {
+    memory: Memory,
 }
 
-impl Bus {
+impl NESBus {
     pub(crate) fn new() -> Self {
-        Bus {
-            cpu_vram: [0; 2048],
+        NESBus {
+            memory: Memory::new(),
+        }
+    }
+}
+
+impl Bus for NESBus {
+    fn read(&self, addr: u16) -> u8 {
+        match addr {
+            RAM_START..=RAM_END => self.memory.read(addr & RAM_MIRROR_MASK),
+            PPU_REGISTERS_START..=PPU_REGISTERS_END => todo!("PPU"),
+            APU_IO_START..=APU_IO_END => todo!("APU"),
+            CARTRIDGE_START..=CARTRIDGE_END => self.memory.read(addr), // TODO:cartridgeを追加したらそっちのアドレスに修正する
+            _ => 0,
+        }
+    }
+
+    fn write(&mut self, addr: u16, value: u8) {
+        match addr {
+            RAM_START..=RAM_END => self.memory.write(addr & RAM_MIRROR_MASK, value),
+            PPU_REGISTERS_START..=PPU_REGISTERS_END => todo!("PPU"),
+            APU_IO_START..=APU_IO_END => todo!("APU"),
+            CARTRIDGE_START..=CARTRIDGE_END => self.memory.write(addr, value), // TODO:cartridgeを追加したらそっちのアドレスに修正する
+            _ => {}
         }
     }
 }

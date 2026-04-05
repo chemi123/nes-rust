@@ -1,10 +1,12 @@
 use crate::cpu::Cpu;
+use crate::bus::NESBus;
+use crate::cpu::bus_access::Bus;
 use crate::cpu::opcodes::*;
 
 // CMP
 #[test]
 fn test_cmp_equal() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     cpu.run(&[LDA_IMMEDIATE, 0x42, CMP_IMMEDIATE, 0x42, BRK]);
     assert_eq!(cpu.processor_status & 0b0000_0001, 0b01); // Carry (A >= M)
     assert_eq!(cpu.processor_status & 0b0000_0010, 0b10); // Zero (A == M)
@@ -13,7 +15,7 @@ fn test_cmp_equal() {
 
 #[test]
 fn test_cmp_greater() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     cpu.run(&[LDA_IMMEDIATE, 0x50, CMP_IMMEDIATE, 0x10, BRK]);
     assert_eq!(cpu.processor_status & 0b0000_0001, 0b01); // Carry (A >= M)
     assert_eq!(cpu.processor_status & 0b0000_0010, 0); // not Zero
@@ -21,7 +23,7 @@ fn test_cmp_greater() {
 
 #[test]
 fn test_cmp_less() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     cpu.run(&[LDA_IMMEDIATE, 0x10, CMP_IMMEDIATE, 0x50, BRK]);
     assert_eq!(cpu.processor_status & 0b0000_0001, 0); // no Carry (A < M)
     assert_eq!(cpu.processor_status & 0b1000_0000, 0b1000_0000); // Negative
@@ -29,8 +31,8 @@ fn test_cmp_less() {
 
 #[test]
 fn test_cmp_zero_page() {
-    let mut cpu = Cpu::new();
-    cpu.memory.write(0x10, 0x42);
+    let mut cpu = Cpu::new(NESBus::new());
+    cpu.bus.write(0x10, 0x42);
     cpu.run(&[LDA_IMMEDIATE, 0x42, CMP_ZERO_PAGE, 0x10, BRK]);
     assert_eq!(cpu.processor_status & 0b0000_0010, 0b10); // Zero
 }
@@ -38,7 +40,7 @@ fn test_cmp_zero_page() {
 // CPX
 #[test]
 fn test_cpx_equal() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     cpu.run(&[LDX_IMMEDIATE, 0x42, CPX_IMMEDIATE, 0x42, BRK]);
     assert_eq!(cpu.processor_status & 0b0000_0001, 0b01); // Carry
     assert_eq!(cpu.processor_status & 0b0000_0010, 0b10); // Zero
@@ -47,7 +49,7 @@ fn test_cpx_equal() {
 
 #[test]
 fn test_cpx_less() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     cpu.run(&[LDX_IMMEDIATE, 0x10, CPX_IMMEDIATE, 0x50, BRK]);
     assert_eq!(cpu.processor_status & 0b0000_0001, 0); // no Carry
     assert_eq!(cpu.processor_status & 0b1000_0000, 0b1000_0000); // Negative
@@ -56,7 +58,7 @@ fn test_cpx_less() {
 // CPY
 #[test]
 fn test_cpy_equal() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     cpu.run(&[LDY_IMMEDIATE, 0x42, CPY_IMMEDIATE, 0x42, BRK]);
     assert_eq!(cpu.processor_status & 0b0000_0001, 0b01); // Carry
     assert_eq!(cpu.processor_status & 0b0000_0010, 0b10); // Zero
@@ -65,7 +67,7 @@ fn test_cpy_equal() {
 
 #[test]
 fn test_cpy_less() {
-    let mut cpu = Cpu::new();
+    let mut cpu = Cpu::new(NESBus::new());
     cpu.run(&[LDY_IMMEDIATE, 0x10, CPY_IMMEDIATE, 0x50, BRK]);
     assert_eq!(cpu.processor_status & 0b0000_0001, 0); // no Carry
     assert_eq!(cpu.processor_status & 0b1000_0000, 0b1000_0000); // Negative

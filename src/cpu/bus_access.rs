@@ -1,4 +1,4 @@
-use crate::memory::STACK_BASE;
+const STACK_BASE: u16 = 0x0100;
 
 use super::Cpu;
 
@@ -7,9 +7,9 @@ pub(crate) trait Bus {
     fn write(&mut self, addr: u16, value: u8);
 }
 
-impl Cpu {
+impl<B: Bus> Cpu<B> {
     pub(super) fn fetch_byte(&mut self) -> u8 {
-        let data = self.memory.read(self.program_counter);
+        let data = self.bus.read(self.program_counter);
         self.program_counter += 1;
         data
     }
@@ -21,7 +21,7 @@ impl Cpu {
     }
 
     pub(super) fn peek_byte(&self, addr: u16) -> u8 {
-        self.memory.read(addr)
+        self.bus.read(addr)
     }
 
     pub(super) fn peek_word(&self, position: u16) -> u16 {
@@ -31,7 +31,7 @@ impl Cpu {
     }
 
     pub(super) fn write_byte(&mut self, addr: u16, data: u8) {
-        self.memory.write(addr, data);
+        self.bus.write(addr, data);
     }
 
     pub(super) fn write_word(&mut self, position: u16, data: u16) {
@@ -43,7 +43,7 @@ impl Cpu {
 
     pub(super) fn push_byte(&mut self, data: u8) {
         let addr = STACK_BASE + self.stack_pointer as u16;
-        self.memory.write(addr, data);
+        self.bus.write(addr, data);
         self.stack_pointer = self.stack_pointer.wrapping_sub(1);
     }
 

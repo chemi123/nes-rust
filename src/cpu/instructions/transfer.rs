@@ -1,6 +1,7 @@
 use crate::cpu::Cpu;
+use crate::cpu::bus_access::Bus;
 
-impl Cpu {
+impl<B: Bus> Cpu<B> {
     pub(in crate::cpu) fn tax(&mut self) {
         self.register_x = self.register_a;
         self.update_zero_and_negative_flags(self.register_x);

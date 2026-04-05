@@ -271,8 +271,4 @@ impl<B: Bus> Cpu<B> {
 
         self.program_counter = self.peek_word(RESET_VECTOR);
     }
-
-    // fn load_cartridge(&mut self, program: &[u8]) {
-    //     self.load(CARTRIDGE_START, program);
-    // }
 }

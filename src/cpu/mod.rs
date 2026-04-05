@@ -6,7 +6,6 @@ mod opcodes;
 #[cfg(test)]
 mod tests;
 
-use crate::bus::CARTRIDGE_START;
 use addressing_mode::AddressingMode;
 use bus_access::Bus;
 use opcodes::*;
@@ -37,17 +36,9 @@ impl<B: Bus> Cpu<B> {
         }
     }
 
-    pub fn run(&mut self, program: &[u8]) {
-        self.load_program(program);
+    pub fn run(&mut self) {
         self.reset();
         self.run_with_callback(|_| {});
-    }
-
-    fn load_program(&mut self, program: &[u8]) {
-        for (i, &byte) in program.iter().enumerate() {
-            self.bus.write(CARTRIDGE_START + i as u16, byte);
-        }
-        self.write_word(RESET_VECTOR, CARTRIDGE_START);
     }
 
     pub fn run_with_callback<F>(&mut self, mut callback: F)

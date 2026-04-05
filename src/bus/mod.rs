@@ -1,3 +1,4 @@
+use crate::cartridge::{PRG_ROM_PAGE_SIZE, Rom};
 use crate::cpu::bus_access::Bus;
 use crate::memory::Memory;
 
@@ -17,13 +18,31 @@ const CARTRIDGE_END: u16 = 0xFFFF;
 
 pub(crate) struct NESBus {
     memory: Memory,
+    rom: Rom,
 }
 
 impl NESBus {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(rom: Rom) -> Self {
         NESBus {
             memory: Memory::new(),
+            rom,
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_program(program: &[u8]) -> Self {
+        NESBus {
+            memory: Memory::new(),
+            rom: Rom::with_program(program),
+        }
+    }
+
+    fn read_cartridge(&self, mut addr: u16) -> u8 {
+        addr -= CARTRIDGE_START;
+        if self.rom.prg_rom.len() == PRG_ROM_PAGE_SIZE && addr >= PRG_ROM_PAGE_SIZE as u16 {
+            addr %= PRG_ROM_PAGE_SIZE as u16;
+        }
+        self.rom.prg_rom[addr as usize]
     }
 }
 
@@ -33,7 +52,7 @@ impl Bus for NESBus {
             RAM_START..=RAM_END => self.memory.read(addr & RAM_MIRROR_MASK),
             PPU_REGISTERS_START..=PPU_REGISTERS_END => todo!("PPU"),
             APU_IO_START..=APU_IO_END => todo!("APU"),
-            CARTRIDGE_START..=CARTRIDGE_END => self.memory.read(addr), // TODO:cartridgeを追加したらそっちのアドレスに修正する
+            CARTRIDGE_START..=CARTRIDGE_END => self.read_cartridge(addr),
             _ => 0,
         }
     }
@@ -43,7 +62,12 @@ impl Bus for NESBus {
             RAM_START..=RAM_END => self.memory.write(addr & RAM_MIRROR_MASK, value),
             PPU_REGISTERS_START..=PPU_REGISTERS_END => todo!("PPU"),
             APU_IO_START..=APU_IO_END => todo!("APU"),
-            CARTRIDGE_START..=CARTRIDGE_END => self.memory.write(addr, value), // TODO:cartridgeを追加したらそっちのアドレスに修正する
+            CARTRIDGE_START..=CARTRIDGE_END => {
+                panic!(
+                    "Attempt to write to Cartridge ROM space: addr={:#06X}",
+                    addr
+                )
+            }
             _ => {}
         }
     }

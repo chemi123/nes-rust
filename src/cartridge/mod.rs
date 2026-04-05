@@ -21,9 +21,9 @@ const FLAG7_NES_2_0_MASK: u8 = 0b0000_1100; // Bits 2-3: If equal to 2, flags ar
 const FLAG7_MAPPER_HIGH: u8 = 0b1111_0000; // Bits 4-7: Upper 4 bits of mapper number
 
 // Units
-const PRG_ROM_PAGE_SIZE: usize = 16384; // 16 KiB
-const CHR_ROM_PAGE_SIZE: usize = 8192; // 8 KiB
-const TRAINER_SIZE: usize = 512;
+pub(crate) const PRG_ROM_PAGE_SIZE: usize = 16384; // 16 KiB
+pub(crate) const CHR_ROM_PAGE_SIZE: usize = 8192; // 8 KiB
+pub(crate) const TRAINER_SIZE: usize = 512;
 
 #[derive(Debug, PartialEq)]
 pub enum Mirroring {
@@ -40,6 +40,22 @@ pub struct Rom {
 }
 
 impl Rom {
+    #[cfg(test)]
+    pub fn with_program(program: &[u8]) -> Self {
+        let mut prg_rom = vec![0; PRG_ROM_PAGE_SIZE * 2];
+        prg_rom[..program.len()].copy_from_slice(program);
+        // リセットベクタ(0xFFFC-0xFFFD)に0x8000を書き込む
+        // PRG ROM内のオフセット: 0xFFFC - 0x8000 = 0x7FFC
+        prg_rom[0x7FFC] = 0x00;
+        prg_rom[0x7FFD] = 0x80;
+        Rom {
+            prg_rom,
+            chr_rom: vec![],
+            mapper: 0,
+            screen_mirroring: Mirroring::Horizontal,
+        }
+    }
+
     pub fn new(raw: &[u8]) -> Result<Rom, String> {
         // "NES" + MS-DOS EOF
         // これによりiNESファイルであるかどうかのvalidationを行う
@@ -52,8 +68,10 @@ impl Rom {
         // Flags 7 の上位4bitをマッパーの上位4bitとして結合する。
         let mapper = (raw[OFFSET_FLAGS_7] & FLAG7_MAPPER_HIGH) | (raw[OFFSET_FLAGS_6] >> 4);
 
-        let ines_ver = raw[OFFSET_FLAGS_7] & FLAG7_NES_2_0_MASK;
-        if ines_ver != 0 {
+        // iNES仕様: Flags 7 の bit2-3 がフォーマットバージョンを表す。
+        // 0: iNES 1.0, 2: NES 2.0
+        let ines_ver = (raw[OFFSET_FLAGS_7] & FLAG7_NES_2_0_MASK) >> 2;
+        if ines_ver == 2 {
             return Err("NES2.0 format is not supported".to_string());
         }
 

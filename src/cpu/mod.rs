@@ -6,10 +6,13 @@ mod opcodes;
 #[cfg(test)]
 mod tests;
 
-use crate::memory::{CARTRIDGE_ROM_START, RESET_VECTOR, STACK_POINTER_INIT};
+use crate::bus::CARTRIDGE_START;
 use addressing_mode::AddressingMode;
 use bus_access::Bus;
 use opcodes::*;
+
+const RESET_VECTOR: u16 = 0xFFFC;
+const STACK_POINTER_INIT: u8 = 0xFD;
 
 pub(crate) struct Cpu<B: Bus> {
     pub(crate) register_a: u8,
@@ -42,9 +45,9 @@ impl<B: Bus> Cpu<B> {
 
     fn load_program(&mut self, program: &[u8]) {
         for (i, &byte) in program.iter().enumerate() {
-            self.bus.write(CARTRIDGE_ROM_START + i as u16, byte);
+            self.bus.write(CARTRIDGE_START + i as u16, byte);
         }
-        self.write_word(RESET_VECTOR, CARTRIDGE_ROM_START);
+        self.write_word(RESET_VECTOR, CARTRIDGE_START);
     }
 
     pub fn run_with_callback<F>(&mut self, mut callback: F)
@@ -270,6 +273,6 @@ impl<B: Bus> Cpu<B> {
     }
 
     // fn load_cartridge(&mut self, program: &[u8]) {
-    //     self.load(CARTRIDGE_ROM_START, program);
+    //     self.load(CARTRIDGE_START, program);
     // }
 }

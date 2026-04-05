@@ -1,4 +1,4 @@
-use crate::memory::STACK_BASE;
+const STACK_BASE: u16 = 0x0100;
 
 use super::Cpu;
 

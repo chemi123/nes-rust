@@ -151,6 +151,7 @@ checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 name = "nes-rust"
 version = "0.1.0"
 dependencies = [
+ "bitflags 2.11.0",
  "rand",
  "sdl2",
 ]

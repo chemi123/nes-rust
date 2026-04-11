@@ -25,12 +25,7 @@ pub(crate) const PRG_ROM_PAGE_SIZE: usize = 16384; // 16 KiB
 pub(crate) const CHR_ROM_PAGE_SIZE: usize = 8192; // 8 KiB
 pub(crate) const TRAINER_SIZE: usize = 512;
 
-#[derive(Debug, PartialEq)]
-pub enum Mirroring {
-    Vertical,
-    Horizontal,
-    FourScreen,
-}
+use crate::Mirroring;
 
 pub struct Rom {
     pub prg_rom: Vec<u8>,

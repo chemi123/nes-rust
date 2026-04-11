@@ -1,6 +1,7 @@
 use crate::cartridge::{PRG_ROM_PAGE_SIZE, Rom};
 use crate::cpu::bus_access::Bus;
 use crate::memory::Memory;
+use crate::ppu::Ppu;
 
 const RAM_START: u16 = 0x0000;
 const RAM_END: u16 = 0x1FFF;
@@ -19,21 +20,27 @@ const CARTRIDGE_END: u16 = 0xFFFF;
 pub(crate) struct NESBus {
     memory: Memory,
     rom: Rom,
+    ppu: Ppu,
 }
 
 impl NESBus {
     pub(crate) fn new(rom: Rom) -> Self {
+        let ppu = Ppu::new(rom.chr_rom.clone(), rom.screen_mirroring.clone());
         NESBus {
             memory: Memory::new(),
             rom,
+            ppu,
         }
     }
 
     #[cfg(test)]
     pub(crate) fn with_program(program: &[u8]) -> Self {
+        let rom = Rom::with_program(program);
+        let ppu = Ppu::new(rom.chr_rom.clone(), rom.screen_mirroring.clone());
         NESBus {
             memory: Memory::new(),
-            rom: Rom::with_program(program),
+            rom,
+            ppu,
         }
     }
 

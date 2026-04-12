@@ -1,11 +1,15 @@
 mod address_register;
 pub(crate) mod controller_register;
+mod status_register;
 #[cfg(test)]
 mod tests;
 
 use crate::{
     Mirroring,
-    ppu::{address_register::AddressRegister, controller_register::ControllerRegister},
+    ppu::{
+        address_register::AddressRegister, controller_register::ControllerRegister,
+        status_register::StatusRegister,
+    },
 };
 
 // PPU メモリマップ
@@ -31,6 +35,7 @@ pub(crate) struct Ppu {
     pub(crate) oam_data: [u8; 256],
     pub(crate) mirroring: Mirroring,
     pub(crate) controller_register: ControllerRegister,
+    pub(crate) status_register: StatusRegister,
     pub(crate) nmi_interrupt: bool,
     address_register: AddressRegister,
     internal_data_buf: u8,
@@ -47,12 +52,22 @@ impl Ppu {
             oam_data: [0; 256],
             mirroring,
             controller_register: ControllerRegister::new(),
+            status_register: StatusRegister::new(),
             address_register: AddressRegister::new(),
             internal_data_buf: 0,
             cycles: 0,
             scanline: 0,
             nmi_interrupt: false,
         }
+    }
+
+    // PPU Status (0x2002) の読み出し
+    // 読み出し時にVBlankフラグをクリアし、アドレスラッチをリセットする
+    pub(crate) fn read_status(&mut self) -> u8 {
+        let data = self.status_register.bits();
+        self.status_register.remove(StatusRegister::VBLANK_STARTED);
+        self.address_register.reset_latch();
+        data
     }
 
     pub(crate) fn read_memory(&mut self) -> u8 {
@@ -71,7 +86,7 @@ impl Ppu {
                 self.internal_data_buf = self.vram[self.mirror_vram_address(addr)];
                 result
             }
-            PALETTE_START..=PALETTE_END => self.palette_table[(addr - PALETTE_START) as usize],
+            PALETTE_START..=PALETTE_END => self.palette_table[Self::mirror_palette_address(addr)],
             _ => 0,
         }
     }
@@ -87,7 +102,7 @@ impl Ppu {
                 self.vram[self.mirror_vram_address(addr) as usize] = data;
             }
             PALETTE_START..=PALETTE_END => {
-                self.palette_table[(addr - PALETTE_START) as usize] = data;
+                self.palette_table[Self::mirror_palette_address(addr)] = data;
             }
             _ => {}
         }
@@ -119,6 +134,7 @@ impl Ppu {
             self.scanline += 1;
 
             if self.scanline == VBLANK_SCANLINE {
+                self.status_register.insert(StatusRegister::VBLANK_STARTED);
                 if self
                     .controller_register
                     .contains(ControllerRegister::GENERATE_NMI)
@@ -130,6 +146,7 @@ impl Ppu {
             if self.scanline >= SCANLINES_PER_FRAME {
                 self.scanline = 0;
                 self.nmi_interrupt = false;
+                self.status_register.remove(StatusRegister::VBLANK_STARTED);
                 return true;
             }
         }
@@ -162,6 +179,20 @@ impl Ppu {
             }
             (Mirroring::Horizontal, 3) => (mirrored - NAMETABLE_SIZE * 2) as usize,
             _ => mirrored as usize,
+        }
+    }
+
+    // パレットアドレス (0x3F00-0x3FFF) を palette_table のインデックス (0-31) に変換する。
+    //
+    // パレットは32バイトだが256バイト分のアドレス空間にマッピングされるため % 32 が必要。
+    // また、スプライトパレットの透明色 (0x10, 0x14, 0x18, 0x1C) は
+    // 背景パレットの透明色 (0x00, 0x04, 0x08, 0x0C) のミラーとなる。
+    fn mirror_palette_address(addr: u16) -> usize {
+        let index = (addr - PALETTE_START) as usize % 32;
+        // スプライトパレットの透明色は背景パレットの透明色にミラー
+        match index {
+            0x10 | 0x14 | 0x18 | 0x1C => index - 0x10,
+            _ => index,
         }
     }
 

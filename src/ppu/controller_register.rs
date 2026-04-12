@@ -2,8 +2,8 @@ use bitflags::bitflags;
 
 bitflags! {
     pub(crate) struct ControllerRegister: u8 {
-        const NEMETABLE_1             = 0b0000_0001;
-        const NEMETABLE_2             = 0b0000_0010;
+        const NAMETABLE_1             = 0b0000_0001;
+        const NAMETABLE_2             = 0b0000_0010;
         const VRAM_ADD_INCREMENT      = 0b0000_0100;
         const SPRITE_PATTERN_ADDR     = 0b0000_1000;
         const BACKGROUND_PATTERN_ADDR = 0b0001_0000;

@@ -37,8 +37,9 @@ pub(crate) struct NESBus {
 }
 
 impl NESBus {
-    pub(crate) fn new(rom: Rom) -> Self {
-        let ppu = Ppu::new(rom.chr_rom.clone(), rom.screen_mirroring.clone());
+    pub(crate) fn new(mut rom: Rom) -> Self {
+        let chr_rom = std::mem::take(&mut rom.chr_rom);
+        let ppu = Ppu::new(chr_rom, rom.screen_mirroring.clone());
         NESBus {
             memory: Memory::new(),
             rom,
@@ -48,8 +49,9 @@ impl NESBus {
 
     #[cfg(test)]
     pub(crate) fn with_program(program: &[u8]) -> Self {
-        let rom = Rom::with_program(program);
-        let ppu = Ppu::new(rom.chr_rom.clone(), rom.screen_mirroring.clone());
+        let mut rom = Rom::with_program(program);
+        let chr_rom = std::mem::take(&mut rom.chr_rom);
+        let ppu = Ppu::new(chr_rom, rom.screen_mirroring.clone());
         NESBus {
             memory: Memory::new(),
             rom,
@@ -71,6 +73,7 @@ impl Bus for NESBus {
         match addr {
             RAM_START..=RAM_END => self.memory.read(addr & RAM_MIRROR_MASK),
             PPU_REGISTERS_START..=PPU_REGISTERS_END => match addr & PPU_MIRROR_MASK {
+                PPU_STATUS => self.ppu.read_status(),
                 PPU_DATA => self.ppu.read_memory(),
                 _ => todo!("PPU register read: {:#06X}", addr & PPU_MIRROR_MASK),
             },
@@ -100,8 +103,8 @@ impl Bus for NESBus {
         }
     }
 
-    fn tick(&mut self, cycles: u8) {
-        self.ppu.tick(cycles as u16 * 3);
+    fn tick(&mut self, cycles: u8) -> bool {
+        self.ppu.tick(cycles as u16 * 3)
     }
 
     fn poll_nmi_status(&mut self) -> bool {

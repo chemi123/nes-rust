@@ -53,7 +53,6 @@ impl<B: Bus> Cpu<B> {
             }
 
             let opcode = self.fetch_byte();
-            callback(self);
 
             match opcode {
                 // LDA
@@ -257,7 +256,9 @@ impl<B: Bus> Cpu<B> {
                 _ => todo!("opcode not implemented: {:02x}", opcode),
             }
 
-            self.bus.tick(opcodes::cycles(opcode));
+            if self.bus.tick(opcodes::cycles(opcode)) {
+                callback(self);
+            }
         }
     }
 

@@ -9,7 +9,8 @@ pub(crate) trait Bus {
     // 本来クロック同期はBus（メモリアクセス）の責務ではないが、
     // 実機では並行動作するCPUとPPUをシングルスレッドで逐次エミュレーションするため、
     // CPUからアクセス可能な唯一の経路であるBus経由でPPUを進める必要がある。
-    fn tick(&mut self, cycles: u8);
+    // 戻り値: PPUがフレーム描画を完了した場合 true
+    fn tick(&mut self, cycles: u8) -> bool;
     fn poll_nmi_status(&mut self) -> bool;
 }
 

@@ -1,10 +1,12 @@
+const RAM_SIZE: usize = 0x0800; // 2KiB
+
 pub(crate) struct Memory {
-    data: [u8; 0x10000],
+    data: [u8; RAM_SIZE],
 }
 
 impl Memory {
     pub fn new() -> Self {
-        Memory { data: [0; 0x10000] }
+        Memory { data: [0; RAM_SIZE] }
     }
 
     pub fn read(&self, addr: u16) -> u8 {

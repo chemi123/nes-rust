@@ -49,7 +49,7 @@ fn test_php_pushes_status_with_break_and_unused() {
     cpu.run();
     let pushed = cpu.bus.read(0x01FD);
     assert_eq!(pushed & 0b0000_0001, 0b01); // Carry
-    assert_eq!(pushed & 0b0011_0000, 0b0011_0000); // Break + Unused set
+    assert_eq!(pushed & 0b0011_0000, 0b0011_0000); // Break + AlwaysSet set
 }
 
 // PLP
@@ -64,10 +64,10 @@ fn test_plp_pulls_status() {
 #[test]
 fn test_plp_clears_break_and_sets_unused() {
     let mut cpu = Cpu::new(NESBus::with_program(&[PHP_IMPLIED, PLP_IMPLIED, BRK]));
-    // PHP pushes with Break+Unused set, PLP should clear Break and keep Unused
+    // PHP pushes with Break+AlwaysSet set, PLP should clear Break and keep AlwaysSet
     cpu.run();
     assert_eq!(cpu.processor_status & 0b0001_0000, 0); // Break cleared
-    assert_eq!(cpu.processor_status & 0b0010_0000, 0b0010_0000); // Unused set
+    assert_eq!(cpu.processor_status & 0b0010_0000, 0b0010_0000); // AlwaysSet set
 }
 
 // PHA + PLA multiple

@@ -11,7 +11,7 @@ pub(super) enum Flag {
     InterruptDisable = 0b0000_0100,
     DecimalMode = 0b0000_1000,
     Break = 0b0001_0000,
-    Unused = 0b0010_0000,
+    AlwaysSet = 0b0010_0000,
     OverFlow = 0b0100_0000,
     Negative = 0b1000_0000,
 }

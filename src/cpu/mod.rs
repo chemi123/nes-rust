@@ -8,8 +8,10 @@ mod tests;
 
 use addressing_mode::AddressingMode;
 use bus_access::Bus;
+use flags::Flag;
 use opcodes::*;
 
+const NMI_VECTOR: u16 = 0xFFFA;
 const RESET_VECTOR: u16 = 0xFFFC;
 const STACK_POINTER_INIT: u8 = 0xFD;
 
@@ -46,6 +48,10 @@ impl<B: Bus> Cpu<B> {
         F: FnMut(&mut Cpu<B>),
     {
         loop {
+            if self.bus.poll_nmi_status() {
+                self.interrupt_nmi();
+            }
+
             let opcode = self.fetch_byte();
             callback(self);
 
@@ -250,6 +256,8 @@ impl<B: Bus> Cpu<B> {
                 BRK => return,
                 _ => todo!("opcode not implemented: {:02x}", opcode),
             }
+
+            self.bus.tick(opcodes::cycles(opcode));
         }
     }
 
@@ -261,5 +269,22 @@ impl<B: Bus> Cpu<B> {
         self.stack_pointer = STACK_POINTER_INIT;
 
         self.program_counter = self.peek_word(RESET_VECTOR);
+    }
+
+    fn interrupt_nmi(&mut self) {
+        // 現在のPCをstackに退避
+        self.push_word(self.program_counter);
+
+        // ステータスをスタックに退避（Break=0, AlwaysSet=1 でハードウェア割り込みを示す）
+        let flags = (self.processor_status & !(Flag::Break as u8)) | Flag::AlwaysSet as u8;
+        self.push_byte(flags);
+
+        // 割り込み中の際割り込みを防止
+        self.set_flag(Flag::InterruptDisable, true);
+
+        self.bus.tick(2);
+
+        // NMIベクタからハンドラアドレスを読んでジャンプ
+        self.program_counter = self.peek_word(NMI_VECTOR);
     }
 }

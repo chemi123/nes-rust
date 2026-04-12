@@ -196,3 +196,197 @@ pub(super) const RTI_IMPLIED: u8 = 0x40;
 
 // System instructions
 pub(super) const BRK: u8 = 0x00;
+
+// 各opcodeの基本サイクル数を返す。
+// ページ境界をまたぐ場合の追加サイクル (+1) や
+// 分岐成立時の追加サイクル (+1/+2) は含まない。
+pub(super) fn cycles(opcode: u8) -> u8 {
+    match opcode {
+        // LDA
+        LDA_IMMEDIATE => 2,
+        LDA_ZERO_PAGE => 3,
+        LDA_ZERO_PAGE_X => 4,
+        LDA_ABSOLUTE => 4,
+        LDA_ABSOLUTE_X => 4,
+        LDA_ABSOLUTE_Y => 4,
+        LDA_INDIRECT_X => 6,
+        LDA_INDIRECT_Y => 5,
+
+        // LDX
+        LDX_IMMEDIATE => 2,
+        LDX_ZERO_PAGE => 3,
+        LDX_ZERO_PAGE_Y => 4,
+        LDX_ABSOLUTE => 4,
+        LDX_ABSOLUTE_Y => 4,
+
+        // LDY
+        LDY_IMMEDIATE => 2,
+        LDY_ZERO_PAGE => 3,
+        LDY_ZERO_PAGE_X => 4,
+        LDY_ABSOLUTE => 4,
+        LDY_ABSOLUTE_X => 4,
+
+        // STA
+        STA_ZERO_PAGE => 3,
+        STA_ZERO_PAGE_X => 4,
+        STA_ABSOLUTE => 4,
+        STA_ABSOLUTE_X => 5,
+        STA_ABSOLUTE_Y => 5,
+        STA_INDIRECT_X => 6,
+        STA_INDIRECT_Y => 6,
+
+        // STX
+        STX_ZERO_PAGE => 3,
+        STX_ZERO_PAGE_Y => 4,
+        STX_ABSOLUTE => 4,
+
+        // STY
+        STY_ZERO_PAGE => 3,
+        STY_ZERO_PAGE_X => 4,
+        STY_ABSOLUTE => 4,
+
+        // Transfer
+        TAX_IMPLIED | TAY_IMPLIED | TXA_IMPLIED | TYA_IMPLIED | TSX_IMPLIED | TXS_IMPLIED => 2,
+
+        // Increment/Decrement
+        INC_ZERO_PAGE => 5,
+        INC_ZERO_PAGE_X => 6,
+        INC_ABSOLUTE => 6,
+        INC_ABSOLUTE_X => 7,
+        DEC_ZERO_PAGE => 5,
+        DEC_ZERO_PAGE_X => 6,
+        DEC_ABSOLUTE => 6,
+        DEC_ABSOLUTE_X => 7,
+        INX_IMPLIED | INY_IMPLIED | DEX_IMPLIED | DEY_IMPLIED => 2,
+
+        // ADC
+        ADC_IMMEDIATE => 2,
+        ADC_ZERO_PAGE => 3,
+        ADC_ZERO_PAGE_X => 4,
+        ADC_ABSOLUTE => 4,
+        ADC_ABSOLUTE_X => 4,
+        ADC_ABSOLUTE_Y => 4,
+        ADC_INDIRECT_X => 6,
+        ADC_INDIRECT_Y => 5,
+
+        // SBC
+        SBC_IMMEDIATE => 2,
+        SBC_ZERO_PAGE => 3,
+        SBC_ZERO_PAGE_X => 4,
+        SBC_ABSOLUTE => 4,
+        SBC_ABSOLUTE_X => 4,
+        SBC_ABSOLUTE_Y => 4,
+        SBC_INDIRECT_X => 6,
+        SBC_INDIRECT_Y => 5,
+
+        // AND
+        AND_IMMEDIATE => 2,
+        AND_ZERO_PAGE => 3,
+        AND_ZERO_PAGE_X => 4,
+        AND_ABSOLUTE => 4,
+        AND_ABSOLUTE_X => 4,
+        AND_ABSOLUTE_Y => 4,
+        AND_INDIRECT_X => 6,
+        AND_INDIRECT_Y => 5,
+
+        // ORA
+        ORA_IMMEDIATE => 2,
+        ORA_ZERO_PAGE => 3,
+        ORA_ZERO_PAGE_X => 4,
+        ORA_ABSOLUTE => 4,
+        ORA_ABSOLUTE_X => 4,
+        ORA_ABSOLUTE_Y => 4,
+        ORA_INDIRECT_X => 6,
+        ORA_INDIRECT_Y => 5,
+
+        // EOR
+        EOR_IMMEDIATE => 2,
+        EOR_ZERO_PAGE => 3,
+        EOR_ZERO_PAGE_X => 4,
+        EOR_ABSOLUTE => 4,
+        EOR_ABSOLUTE_X => 4,
+        EOR_ABSOLUTE_Y => 4,
+        EOR_INDIRECT_X => 6,
+        EOR_INDIRECT_Y => 5,
+
+        // CMP
+        CMP_IMMEDIATE => 2,
+        CMP_ZERO_PAGE => 3,
+        CMP_ZERO_PAGE_X => 4,
+        CMP_ABSOLUTE => 4,
+        CMP_ABSOLUTE_X => 4,
+        CMP_ABSOLUTE_Y => 4,
+        CMP_INDIRECT_X => 6,
+        CMP_INDIRECT_Y => 5,
+
+        // CPX
+        CPX_IMMEDIATE => 2,
+        CPX_ZERO_PAGE => 3,
+        CPX_ABSOLUTE => 4,
+
+        // CPY
+        CPY_IMMEDIATE => 2,
+        CPY_ZERO_PAGE => 3,
+        CPY_ABSOLUTE => 4,
+
+        // Flags
+        CLC_IMPLIED | SEC_IMPLIED | CLD_IMPLIED | SED_IMPLIED | CLI_IMPLIED | SEI_IMPLIED
+        | CLV_IMPLIED => 2,
+
+        // Shifts
+        ASL_ACCUMULATOR => 2,
+        ASL_ZERO_PAGE => 5,
+        ASL_ZERO_PAGE_X => 6,
+        ASL_ABSOLUTE => 6,
+        ASL_ABSOLUTE_X => 7,
+
+        LSR_ACCUMULATOR => 2,
+        LSR_ZERO_PAGE => 5,
+        LSR_ZERO_PAGE_X => 6,
+        LSR_ABSOLUTE => 6,
+        LSR_ABSOLUTE_X => 7,
+
+        ROL_ACCUMULATOR => 2,
+        ROL_ZERO_PAGE => 5,
+        ROL_ZERO_PAGE_X => 6,
+        ROL_ABSOLUTE => 6,
+        ROL_ABSOLUTE_X => 7,
+
+        ROR_ACCUMULATOR => 2,
+        ROR_ZERO_PAGE => 5,
+        ROR_ZERO_PAGE_X => 6,
+        ROR_ABSOLUTE => 6,
+        ROR_ABSOLUTE_X => 7,
+
+        // Branches
+        BCC_RELATIVE | BCS_RELATIVE | BEQ_RELATIVE | BNE_RELATIVE | BMI_RELATIVE | BPL_RELATIVE
+        | BVC_RELATIVE | BVS_RELATIVE => 2,
+
+        // Jump
+        JMP_ABSOLUTE => 3,
+        JMP_INDIRECT => 5,
+        JSR_ABSOLUTE => 6,
+        RTS_IMPLIED => 6,
+
+        // NOP
+        NOP_IMPLIED => 2,
+
+        // Stack
+        PHA_IMPLIED => 3,
+        PHP_IMPLIED => 3,
+        PLA_IMPLIED => 4,
+        PLP_IMPLIED => 4,
+
+        // BIT
+        BIT_ZERO_PAGE => 3,
+        BIT_ABSOLUTE => 4,
+
+        // RTI
+        RTI_IMPLIED => 6,
+
+        // BRK
+        BRK => 7,
+
+        _ => 1,
+    }
+}

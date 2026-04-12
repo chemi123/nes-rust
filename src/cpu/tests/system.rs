@@ -48,12 +48,12 @@ fn test_rti_clears_break_sets_unused() {
         NOP_IMPLIED,            // $8006
         BRK,                    // $8007
     ]));
-    // status with Break + Unused + Carry
+    // status with Break + AlwaysSet + Carry
     cpu.bus.write(0x01FB, 0b0011_0001);
     cpu.bus.write(0x01FC, 0x07); // PC low -> $8007
     cpu.bus.write(0x01FD, 0x80); // PC high
     cpu.run();
     assert_eq!(cpu.processor_status & 0b0001_0000, 0); // Break cleared
-    assert_eq!(cpu.processor_status & 0b0010_0000, 0b0010_0000); // Unused set
+    assert_eq!(cpu.processor_status & 0b0010_0000, 0b0010_0000); // AlwaysSet set
     assert_eq!(cpu.processor_status & 0b0000_0001, 0b01); // Carry preserved
 }

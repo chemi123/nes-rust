@@ -5,6 +5,12 @@ use super::Cpu;
 pub(crate) trait Bus {
     fn read(&self, addr: u16) -> u8;
     fn write(&mut self, addr: u16, value: u8);
+
+    // 本来クロック同期はBus（メモリアクセス）の責務ではないが、
+    // 実機では並行動作するCPUとPPUをシングルスレッドで逐次エミュレーションするため、
+    // CPUからアクセス可能な唯一の経路であるBus経由でPPUを進める必要がある。
+    fn tick(&mut self, cycles: u8);
+    fn poll_nmi_status(&mut self) -> bool;
 }
 
 impl<B: Bus> Cpu<B> {

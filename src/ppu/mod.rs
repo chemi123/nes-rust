@@ -18,6 +18,10 @@ const PALETTE_END: u16 = 0x3FFF;
 const VRAM_MIRROR_MASK: u16 = 0b0010_1111_1111_1111; // 0x3000→0x2000 のミラー解決
 const NAMETABLE_SIZE: u16 = 0x0400; // 1 Nametable = 1KiB
 
+const CYCLES_PER_SCANLINE: usize = 341;
+const VBLANK_SCANLINE: u16 = 241;
+const SCANLINES_PER_FRAME: u16 = 262;
+
 pub(crate) struct Ppu {
     pub(crate) chr_rom: Vec<u8>,
     pub(crate) palette_table: [u8; 32],
@@ -25,8 +29,11 @@ pub(crate) struct Ppu {
     pub(crate) oam_data: [u8; 256],
     pub(crate) mirroring: Mirroring,
     pub(crate) controller_register: ControllerRegister,
+    pub(crate) nmi_interrupt: bool,
     address_register: AddressRegister,
     internal_data_buf: u8,
+    cycles: usize,
+    scanline: u16,
 }
 
 impl Ppu {
@@ -40,6 +47,9 @@ impl Ppu {
             controller_register: ControllerRegister::new(),
             address_register: AddressRegister::new(),
             internal_data_buf: 0,
+            cycles: 0,
+            scanline: 0,
+            nmi_interrupt: false,
         }
     }
 
@@ -86,7 +96,42 @@ impl Ppu {
     }
 
     pub(crate) fn write_to_controller_register(&mut self, data: u8) {
+        let is_nmi_off = !self
+            .controller_register
+            .contains(ControllerRegister::GENERATE_NMI);
         self.controller_register.update(data);
+        let is_nmi_enabled_by_update = is_nmi_off
+            && self
+                .controller_register
+                .contains(ControllerRegister::GENERATE_NMI);
+
+        if is_nmi_enabled_by_update && self.is_in_vblank() {
+            self.nmi_interrupt = true;
+        }
+    }
+
+    pub(crate) fn tick(&mut self, cycles: u8) -> bool {
+        self.cycles += cycles as usize;
+        if self.cycles >= CYCLES_PER_SCANLINE {
+            self.cycles -= CYCLES_PER_SCANLINE;
+            self.scanline += 1;
+
+            if self.scanline == VBLANK_SCANLINE {
+                if self
+                    .controller_register
+                    .contains(ControllerRegister::GENERATE_NMI)
+                {
+                    self.nmi_interrupt = true;
+                }
+            }
+
+            if self.scanline >= SCANLINES_PER_FRAME {
+                self.scanline = 0;
+                self.nmi_interrupt = false;
+                return true;
+            }
+        }
+        false
     }
 
     // PPUアドレス (0x2000-0x2FFF) を物理VRAMインデックス (0-2047) に変換する。
@@ -116,5 +161,9 @@ impl Ppu {
             (Mirroring::Horizontal, 3) => (mirrored - NAMETABLE_SIZE * 2) as usize,
             _ => mirrored as usize,
         }
+    }
+
+    fn is_in_vblank(&self) -> bool {
+        VBLANK_SCANLINE <= self.scanline && self.scanline < SCANLINES_PER_FRAME
     }
 }

@@ -78,4 +78,14 @@ impl Bus for NESBus {
             _ => {}
         }
     }
+
+    fn tick(&mut self, cycles: u8) {
+        self.ppu.tick(cycles * 3);
+    }
+
+    fn poll_nmi_status(&mut self) -> bool {
+        let nmi = self.ppu.nmi_interrupt;
+        self.ppu.nmi_interrupt = false;
+        nmi
+    }
 }

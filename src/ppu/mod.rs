@@ -1,5 +1,7 @@
 mod address_register;
-mod controller_register;
+pub(crate) mod controller_register;
+#[cfg(test)]
+mod tests;
 
 use crate::{
     Mirroring,
@@ -18,9 +20,9 @@ const PALETTE_END: u16 = 0x3FFF;
 const VRAM_MIRROR_MASK: u16 = 0b0010_1111_1111_1111; // 0x3000→0x2000 のミラー解決
 const NAMETABLE_SIZE: u16 = 0x0400; // 1 Nametable = 1KiB
 
-const CYCLES_PER_SCANLINE: usize = 341;
-const VBLANK_SCANLINE: u16 = 241;
-const SCANLINES_PER_FRAME: u16 = 262;
+pub(crate) const CYCLES_PER_SCANLINE: usize = 341;
+pub(crate) const VBLANK_SCANLINE: u16 = 241;
+pub(crate) const SCANLINES_PER_FRAME: u16 = 262;
 
 pub(crate) struct Ppu {
     pub(crate) chr_rom: Vec<u8>,
@@ -32,8 +34,8 @@ pub(crate) struct Ppu {
     pub(crate) nmi_interrupt: bool,
     address_register: AddressRegister,
     internal_data_buf: u8,
-    cycles: usize,
-    scanline: u16,
+    pub(crate) cycles: usize,
+    pub(crate) scanline: u16,
 }
 
 impl Ppu {
@@ -110,7 +112,7 @@ impl Ppu {
         }
     }
 
-    pub(crate) fn tick(&mut self, cycles: u8) -> bool {
+    pub(crate) fn tick(&mut self, cycles: u16) -> bool {
         self.cycles += cycles as usize;
         if self.cycles >= CYCLES_PER_SCANLINE {
             self.cycles -= CYCLES_PER_SCANLINE;

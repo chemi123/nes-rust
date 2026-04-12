@@ -1,5 +1,5 @@
-use crate::cpu::Cpu;
 use crate::bus::NESBus;
+use crate::cpu::Cpu;
 use crate::cpu::bus_access::Bus;
 use crate::cpu::opcodes::*;
 
@@ -13,47 +13,52 @@ fn test_nop_does_nothing() {
     assert_eq!(cpu.register_y, 0);
 }
 
-// RTI
+// interrupt_nmi
 #[test]
-fn test_rti_restores_status_and_pc() {
-    let mut cpu = Cpu::new(NESBus::with_program(&[
-        LDX_IMMEDIATE, 0xFA,   // $8000
-        TXS_IMPLIED,            // $8002: SP=0xFA
-        RTI_IMPLIED,            // $8003: pop status, pop PC -> $8007
-        NOP_IMPLIED,            // $8004
-        NOP_IMPLIED,            // $8005
-        NOP_IMPLIED,            // $8006
-        INY_IMPLIED,            // $8007: landed here
-        BRK,                    // $8008
-    ]));
-    // Pre-write interrupt stack frame at $01FB-$01FD
-    // RTI pops: status(SP+1), PC_low(SP+2), PC_high(SP+3)
-    // Use TXS to set SP=0xFA so RTI reads from $01FB, $01FC, $01FD
-    cpu.bus.write(0x01FB, 0x01); // status: Carry=1
-    cpu.bus.write(0x01FC, 0x07); // PC low -> $8007
-    cpu.bus.write(0x01FD, 0x80); // PC high
-    cpu.run();
-    assert_eq!(cpu.register_y, 1); // reached $8007
-    assert_eq!(cpu.processor_status & 0b0000_0001, 0b01); // Carry restored
+fn test_interrupt_nmi_pushes_pc_and_status() {
+    let mut cpu = Cpu::new(NESBus::with_program(&[BRK]));
+    cpu.reset();
+    cpu.processor_status = 0b0100_0001; // OverFlow + Carry
+    cpu.program_counter = 0x1234;
+
+    let sp_before = cpu.stack_pointer;
+    cpu.interrupt_nmi();
+
+    // SPが3バイト分下がる (PC 2バイト + status 1バイト)
+    assert_eq!(cpu.stack_pointer, sp_before.wrapping_sub(3));
+
+    // スタックに退避されたPC
+    let pushed_pc_hi = cpu.bus.read(0x0100 + sp_before as u16);
+    let pushed_pc_lo = cpu.bus.read(0x0100 + sp_before.wrapping_sub(1) as u16);
+    assert_eq!(pushed_pc_hi, 0x12);
+    assert_eq!(pushed_pc_lo, 0x34);
+
+    // スタックに退避されたstatus: Break=0, AlwaysSet=1
+    let pushed_status = cpu.bus.read(0x0100 + sp_before.wrapping_sub(2) as u16);
+    assert_eq!(pushed_status & 0b0001_0000, 0);          // Break cleared
+    assert_eq!(pushed_status & 0b0010_0000, 0b0010_0000); // AlwaysSet
+    assert_eq!(pushed_status & 0b0100_0001, 0b0100_0001); // OverFlow + Carry preserved
 }
 
 #[test]
-fn test_rti_clears_break_sets_unused() {
-    let mut cpu = Cpu::new(NESBus::with_program(&[
-        LDX_IMMEDIATE, 0xFA,   // $8000
-        TXS_IMPLIED,            // $8002: SP=0xFA
-        RTI_IMPLIED,            // $8003
-        NOP_IMPLIED,            // $8004
-        NOP_IMPLIED,            // $8005
-        NOP_IMPLIED,            // $8006
-        BRK,                    // $8007
-    ]));
-    // status with Break + AlwaysSet + Carry
-    cpu.bus.write(0x01FB, 0b0011_0001);
-    cpu.bus.write(0x01FC, 0x07); // PC low -> $8007
-    cpu.bus.write(0x01FD, 0x80); // PC high
-    cpu.run();
-    assert_eq!(cpu.processor_status & 0b0001_0000, 0); // Break cleared
-    assert_eq!(cpu.processor_status & 0b0010_0000, 0b0010_0000); // AlwaysSet set
-    assert_eq!(cpu.processor_status & 0b0000_0001, 0b01); // Carry preserved
+fn test_interrupt_nmi_sets_interrupt_disable() {
+    let mut cpu = Cpu::new(NESBus::with_program(&[BRK]));
+    cpu.reset();
+    assert_eq!(cpu.processor_status & 0b0000_0100, 0);
+
+    cpu.interrupt_nmi();
+
+    assert_eq!(cpu.processor_status & 0b0000_0100, 0b0000_0100); // InterruptDisable set
+}
+
+#[test]
+fn test_interrupt_nmi_jumps_to_nmi_vector() {
+    let mut cpu = Cpu::new(NESBus::with_program(&[BRK]));
+    cpu.reset();
+
+    // NMIベクタ (0xFFFA) の値を読んで、PCがその値になることを確認
+    let nmi_addr = cpu.bus.read(0xFFFA) as u16 | (cpu.bus.read(0xFFFB) as u16) << 8;
+    cpu.interrupt_nmi();
+
+    assert_eq!(cpu.program_counter, nmi_addr);
 }

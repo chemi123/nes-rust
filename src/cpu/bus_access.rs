@@ -3,7 +3,7 @@ const STACK_BASE: u16 = 0x0100;
 use super::Cpu;
 
 pub(crate) trait Bus {
-    fn read(&self, addr: u16) -> u8;
+    fn read(&mut self, addr: u16) -> u8;
     fn write(&mut self, addr: u16, value: u8);
 
     // 本来クロック同期はBus（メモリアクセス）の責務ではないが、
@@ -26,11 +26,11 @@ impl<B: Bus> Cpu<B> {
         (hi << 8) | lo
     }
 
-    pub(super) fn peek_byte(&self, addr: u16) -> u8 {
+    pub(super) fn peek_byte(&mut self, addr: u16) -> u8 {
         self.bus.read(addr)
     }
 
-    pub(super) fn peek_word(&self, position: u16) -> u16 {
+    pub(super) fn peek_word(&mut self, position: u16) -> u16 {
         let low = self.peek_byte(position) as u16;
         let high = self.peek_byte(position + 1) as u16;
         (high << 8) | low

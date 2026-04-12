@@ -271,7 +271,7 @@ impl<B: Bus> Cpu<B> {
         self.program_counter = self.peek_word(RESET_VECTOR);
     }
 
-    fn interrupt_nmi(&mut self) {
+    pub(super) fn interrupt_nmi(&mut self) {
         // 現在のPCをstackに退避
         self.push_word(self.program_counter);
 

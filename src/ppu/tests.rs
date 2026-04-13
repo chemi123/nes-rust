@@ -1,7 +1,7 @@
 use crate::Mirroring;
 use crate::ppu::Ppu;
 use crate::ppu::controller_register::ControllerRegister;
-use crate::ppu::{CYCLES_PER_SCANLINE, SCANLINES_PER_FRAME, VBLANK_SCANLINE};
+use crate::ppu::{CYCLES_PER_SCANLINE, REG_CONTROLLER, SCANLINES_PER_FRAME, VBLANK_SCANLINE};
 
 fn new_ppu() -> Ppu {
     Ppu::new(vec![0; 2048], Mirroring::Horizontal)
@@ -12,35 +12,35 @@ fn new_ppu() -> Ppu {
 fn test_tick_increments_scanline() {
     let mut ppu = new_ppu();
     ppu.tick(CYCLES_PER_SCANLINE as u16);
-    assert_eq!(ppu.scanline, 1);
+    assert_eq!(ppu.scanline(), 1);
 }
 
 #[test]
 fn test_tick_does_not_increment_scanline_before_341_cycles() {
     let mut ppu = new_ppu();
     ppu.tick(340);
-    assert_eq!(ppu.scanline, 0);
+    assert_eq!(ppu.scanline(), 0);
 }
 
 #[test]
 fn test_tick_carries_over_remaining_cycles() {
     let mut ppu = new_ppu();
     ppu.tick(CYCLES_PER_SCANLINE as u16 + 10);
-    assert_eq!(ppu.scanline, 1);
-    assert_eq!(ppu.cycles, 10);
+    assert_eq!(ppu.scanline(), 1);
+    assert_eq!(ppu.cycles(), 10);
 }
 
 // tick: VBLANK でのNMI発生
 #[test]
 fn test_tick_triggers_nmi_at_vblank_with_nmi_enabled() {
     let mut ppu = new_ppu();
-    ppu.controller_register.update(ControllerRegister::GENERATE_NMI.bits());
+    ppu.write_to_register(REG_CONTROLLER, ControllerRegister::GENERATE_NMI.bits());
 
     // スキャンライン241まで進める
     for _ in 0..VBLANK_SCANLINE {
         ppu.tick(CYCLES_PER_SCANLINE as u16);
     }
-    assert!(ppu.nmi_interrupt);
+    assert!(ppu.nmi_interrupt());
 }
 
 #[test]
@@ -51,7 +51,7 @@ fn test_tick_does_not_trigger_nmi_at_vblank_with_nmi_disabled() {
     for _ in 0..VBLANK_SCANLINE {
         ppu.tick(CYCLES_PER_SCANLINE as u16);
     }
-    assert!(!ppu.nmi_interrupt);
+    assert!(!ppu.nmi_interrupt());
 }
 
 // tick: フレーム完了
@@ -68,13 +68,13 @@ fn test_tick_returns_true_on_frame_complete() {
 #[test]
 fn test_tick_resets_scanline_on_frame_complete() {
     let mut ppu = new_ppu();
-    ppu.controller_register.update(ControllerRegister::GENERATE_NMI.bits());
+    ppu.write_to_register(REG_CONTROLLER, ControllerRegister::GENERATE_NMI.bits());
 
     for _ in 0..SCANLINES_PER_FRAME {
         ppu.tick(CYCLES_PER_SCANLINE as u16);
     }
-    assert_eq!(ppu.scanline, 0);
-    assert!(!ppu.nmi_interrupt); // フレーム完了でNMIクリア
+    assert_eq!(ppu.scanline(), 0);
+    assert!(!ppu.nmi_interrupt()); // フレーム完了でNMIクリア
 }
 
 // エッジ検出: GENERATE_NMI 0→1 かつ VBLANK中
@@ -86,28 +86,28 @@ fn test_edge_detection_nmi_enabled_during_vblank() {
     for _ in 0..VBLANK_SCANLINE {
         ppu.tick(CYCLES_PER_SCANLINE as u16);
     }
-    ppu.nmi_interrupt = false; // tickでのNMIをクリア
+    ppu.set_nmi_interrupt(false); // tickでのNMIをクリア
 
     // GENERATE_NMI を 0→1 に変更 → VBLANK中なのでNMI発生
-    ppu.write_to_controller_register(ControllerRegister::GENERATE_NMI.bits());
-    assert!(ppu.nmi_interrupt);
+    ppu.write_to_register(REG_CONTROLLER, ControllerRegister::GENERATE_NMI.bits());
+    assert!(ppu.nmi_interrupt());
 }
 
 // エッジ検出: GENERATE_NMI 1→1 ではNMI発生しない
 #[test]
 fn test_edge_detection_nmi_already_enabled_no_trigger() {
     let mut ppu = new_ppu();
-    ppu.controller_register.update(ControllerRegister::GENERATE_NMI.bits());
+    ppu.write_to_register(REG_CONTROLLER, ControllerRegister::GENERATE_NMI.bits());
 
     // VBLANK状態にする
     for _ in 0..VBLANK_SCANLINE {
         ppu.tick(CYCLES_PER_SCANLINE as u16);
     }
-    ppu.nmi_interrupt = false;
+    ppu.set_nmi_interrupt(false);
 
     // GENERATE_NMI は既に1 → 再度書き込んでもNMI発生しない
-    ppu.write_to_controller_register(ControllerRegister::GENERATE_NMI.bits());
-    assert!(!ppu.nmi_interrupt);
+    ppu.write_to_register(REG_CONTROLLER, ControllerRegister::GENERATE_NMI.bits());
+    assert!(!ppu.nmi_interrupt());
 }
 
 // エッジ検出: GENERATE_NMI 0→1 だがVBLANK外ではNMI発生しない
@@ -120,6 +120,6 @@ fn test_edge_detection_nmi_enabled_outside_vblank() {
         ppu.tick(CYCLES_PER_SCANLINE as u16);
     }
 
-    ppu.write_to_controller_register(ControllerRegister::GENERATE_NMI.bits());
-    assert!(!ppu.nmi_interrupt);
+    ppu.write_to_register(REG_CONTROLLER, ControllerRegister::GENERATE_NMI.bits());
+    assert!(!ppu.nmi_interrupt());
 }

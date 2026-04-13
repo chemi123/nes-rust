@@ -1,5 +1,6 @@
 mod address_register;
 pub(crate) mod controller_register;
+pub(crate) mod palette;
 mod status_register;
 #[cfg(test)]
 mod tests;
@@ -11,6 +12,16 @@ use crate::{
         status_register::StatusRegister,
     },
 };
+
+// PPU レジスタ (CPU側アドレス 0x2000-0x2007 の下位3bit)
+const REG_CONTROLLER: u16 = 0x00; // 0x2000: コントローラ (W)
+const REG_MASK: u16 = 0x01; // 0x2001: マスク (W)
+const REG_STATUS: u16 = 0x02; // 0x2002: ステータス (R)
+const REG_OAM_ADDR: u16 = 0x03; // 0x2003: OAMアドレス (W)
+const REG_OAM_DATA: u16 = 0x04; // 0x2004: OAMデータ (RW)
+const REG_SCROLL: u16 = 0x05; // 0x2005: スクロール (W)
+const REG_ADDRESS: u16 = 0x06; // 0x2006: PPUアドレス (W)
+const REG_DATA: u16 = 0x07; // 0x2007: PPUデータ (RW)
 
 // PPU メモリマップ
 const CHR_ROM_START: u16 = 0x0000;
@@ -29,18 +40,18 @@ pub(crate) const VBLANK_SCANLINE: u16 = 241;
 pub(crate) const SCANLINES_PER_FRAME: u16 = 262;
 
 pub(crate) struct Ppu {
-    pub(crate) chr_rom: Vec<u8>,
-    pub(crate) palette_table: [u8; 32],
-    pub(crate) vram: [u8; 2048],
-    pub(crate) oam_data: [u8; 256],
-    pub(crate) mirroring: Mirroring,
-    pub(crate) controller_register: ControllerRegister,
-    pub(crate) status_register: StatusRegister,
-    pub(crate) nmi_interrupt: bool,
+    chr_rom: Vec<u8>,
+    palette_table: [u8; 32],
+    vram: [u8; 2048],
+    oam_data: [u8; 256],
+    mirroring: Mirroring,
+    controller_register: ControllerRegister,
+    status_register: StatusRegister,
+    nmi_interrupt: bool,
     address_register: AddressRegister,
     internal_data_buf: u8,
-    pub(crate) cycles: usize,
-    pub(crate) scanline: u16,
+    cycles: usize,
+    scanline: u16,
 }
 
 impl Ppu {
@@ -61,16 +72,44 @@ impl Ppu {
         }
     }
 
+    // NMI割り込みが発生しているか確認し、確認後にフラグをクリアする
+    pub(crate) fn poll_nmi_interrupt(&mut self) -> bool {
+        let nmi = self.nmi_interrupt;
+        self.nmi_interrupt = false;
+        nmi
+    }
+
+    // CPU からの PPU レジスタ読み出し (0x2000-0x2007)
+    // register: アドレスの下位3bit (0-7)
+    pub(crate) fn read_register(&mut self, register: u16) -> u8 {
+        match register {
+            REG_STATUS => self.read_status(),
+            REG_DATA => self.read_memory(),
+            _ => todo!("PPU register read: {:#06X}", register),
+        }
+    }
+
+    // CPU からの PPU レジスタ書き込み (0x2000-0x2007)
+    // register: アドレスの下位3bit (0-7)
+    pub(crate) fn write_to_register(&mut self, register: u16, value: u8) {
+        match register {
+            REG_CONTROLLER => self.write_to_controller_register(value),
+            REG_ADDRESS => self.write_to_address_register(value),
+            REG_DATA => self.write_to_memory(value),
+            _ => todo!("PPU register write: {:#06X}", register),
+        }
+    }
+
     // PPU Status (0x2002) の読み出し
     // 読み出し時にVBlankフラグをクリアし、アドレスラッチをリセットする
-    pub(crate) fn read_status(&mut self) -> u8 {
+    fn read_status(&mut self) -> u8 {
         let data = self.status_register.bits();
         self.status_register.remove(StatusRegister::VBLANK_STARTED);
         self.address_register.reset_latch();
         data
     }
 
-    pub(crate) fn read_memory(&mut self) -> u8 {
+    fn read_memory(&mut self) -> u8 {
         let addr = self.address_register.get();
         self.address_register
             .increment(self.controller_register.vram_address_step());
@@ -91,7 +130,7 @@ impl Ppu {
         }
     }
 
-    pub(crate) fn write_to_memory(&mut self, data: u8) {
+    fn write_to_memory(&mut self, data: u8) {
         let addr = self.address_register.get();
         self.address_register
             .increment(self.controller_register.vram_address_step());
@@ -108,11 +147,11 @@ impl Ppu {
         }
     }
 
-    pub(crate) fn write_to_address_register(&mut self, data: u8) {
+    fn write_to_address_register(&mut self, data: u8) {
         self.address_register.write(data);
     }
 
-    pub(crate) fn write_to_controller_register(&mut self, data: u8) {
+    fn write_to_controller_register(&mut self, data: u8) {
         let is_nmi_off = !self
             .controller_register
             .contains(ControllerRegister::GENERATE_NMI);
@@ -198,5 +237,24 @@ impl Ppu {
 
     fn is_in_vblank(&self) -> bool {
         VBLANK_SCANLINE <= self.scanline && self.scanline < SCANLINES_PER_FRAME
+    }
+}
+
+#[cfg(test)]
+impl Ppu {
+    pub(crate) fn scanline(&self) -> u16 {
+        self.scanline
+    }
+
+    pub(crate) fn cycles(&self) -> usize {
+        self.cycles
+    }
+
+    pub(crate) fn nmi_interrupt(&self) -> bool {
+        self.nmi_interrupt
+    }
+
+    pub(crate) fn set_nmi_interrupt(&mut self, value: bool) {
+        self.nmi_interrupt = value;
     }
 }

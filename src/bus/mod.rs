@@ -14,16 +14,6 @@ const PPU_REGISTERS_START: u16 = 0x2000;
 const PPU_REGISTERS_END: u16 = 0x3FFF;
 const PPU_MIRROR_MASK: u16 = 0x0007;
 
-// PPU レジスタ (0x2000-0x2007、0x2008-0x3FFF はミラー)
-const PPU_CTRL: u16 = 0x0000; // 0x2000: コントローラ (W)
-const PPU_MASK: u16 = 0x0001; // 0x2001: マスク (W)
-const PPU_STATUS: u16 = 0x0002; // 0x2002: ステータス (R)
-const OAM_ADDR: u16 = 0x0003; // 0x2003: OAMアドレス (W)
-const OAM_DATA: u16 = 0x0004; // 0x2004: OAMデータ (RW)
-const PPU_SCROLL: u16 = 0x0005; // 0x2005: スクロール (W)
-const PPU_ADDR: u16 = 0x0006; // 0x2006: PPUアドレス (W)
-const PPU_DATA: u16 = 0x0007; // 0x2007: PPUデータ (RW)
-
 const APU_IO_START: u16 = 0x4000;
 const APU_IO_END: u16 = 0x401F;
 
@@ -72,11 +62,9 @@ impl Bus for NESBus {
     fn read(&mut self, addr: u16) -> u8 {
         match addr {
             RAM_START..=RAM_END => self.memory.read(addr & RAM_MIRROR_MASK),
-            PPU_REGISTERS_START..=PPU_REGISTERS_END => match addr & PPU_MIRROR_MASK {
-                PPU_STATUS => self.ppu.read_status(),
-                PPU_DATA => self.ppu.read_memory(),
-                _ => todo!("PPU register read: {:#06X}", addr & PPU_MIRROR_MASK),
-            },
+            PPU_REGISTERS_START..=PPU_REGISTERS_END => {
+                self.ppu.read_register(addr & PPU_MIRROR_MASK)
+            }
             APU_IO_START..=APU_IO_END => todo!("APU"),
             CARTRIDGE_START..=CARTRIDGE_END => self.read_cartridge(addr),
             _ => 0,
@@ -86,12 +74,9 @@ impl Bus for NESBus {
     fn write(&mut self, addr: u16, value: u8) {
         match addr {
             RAM_START..=RAM_END => self.memory.write(addr & RAM_MIRROR_MASK, value),
-            PPU_REGISTERS_START..=PPU_REGISTERS_END => match addr & PPU_MIRROR_MASK {
-                PPU_CTRL => self.ppu.write_to_controller_register(value),
-                PPU_ADDR => self.ppu.write_to_address_register(value),
-                PPU_DATA => self.ppu.write_to_memory(value),
-                _ => todo!("PPU register write: {:#06X}", addr & PPU_MIRROR_MASK),
-            },
+            PPU_REGISTERS_START..=PPU_REGISTERS_END => {
+                self.ppu.write_to_register(addr & PPU_MIRROR_MASK, value)
+            }
             APU_IO_START..=APU_IO_END => todo!("APU"),
             CARTRIDGE_START..=CARTRIDGE_END => {
                 panic!(
@@ -108,8 +93,6 @@ impl Bus for NESBus {
     }
 
     fn poll_nmi_status(&mut self) -> bool {
-        let nmi = self.ppu.nmi_interrupt;
-        self.ppu.nmi_interrupt = false;
-        nmi
+        self.ppu.poll_nmi_interrupt()
     }
 }

@@ -1,15 +1,12 @@
-mod address_register;
-pub(crate) mod controller_register;
 pub(crate) mod palette;
-mod status_register;
+pub(crate) mod register;
 #[cfg(test)]
 mod tests;
 
 use crate::{
     Mirroring,
-    ppu::{
-        address_register::AddressRegister, controller_register::ControllerRegister,
-        status_register::StatusRegister,
+    ppu::register::{
+        address::AddressRegister, controller::ControllerRegister, status::StatusRegister,
     },
 };
 

@@ -1,6 +1,6 @@
 use crate::Mirroring;
 use crate::ppu::Ppu;
-use crate::ppu::controller_register::ControllerRegister;
+use crate::ppu::register::controller::ControllerRegister;
 use crate::ppu::{CYCLES_PER_SCANLINE, REG_CONTROLLER, SCANLINES_PER_FRAME, VBLANK_SCANLINE};
 
 fn new_ppu() -> Ppu {

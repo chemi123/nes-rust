@@ -1,7 +1,7 @@
 mod addressing_mode;
 pub mod bus_access;
 mod flags;
-mod instructions;
+mod instruction;
 mod opcodes;
 #[cfg(test)]
 mod tests;

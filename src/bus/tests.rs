@@ -1,6 +1,6 @@
 use super::*;
 use crate::cpu::bus_access::Bus;
-use crate::ppu::controller_register::ControllerRegister;
+use crate::ppu::register::controller::ControllerRegister;
 
 #[test]
 fn test_poll_nmi_status_returns_true_and_clears() {

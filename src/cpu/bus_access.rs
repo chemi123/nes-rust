@@ -2,7 +2,7 @@ const STACK_BASE: u16 = 0x0100;
 
 use super::Cpu;
 
-pub(crate) trait Bus {
+pub trait Bus {
     fn read(&mut self, addr: u16) -> u8;
     fn write(&mut self, addr: u16, value: u8);
 

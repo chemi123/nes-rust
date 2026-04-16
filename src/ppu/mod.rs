@@ -1,5 +1,7 @@
+pub(crate) mod frame;
 pub(crate) mod palette;
 pub(crate) mod register;
+pub(crate) mod render;
 #[cfg(test)]
 mod tests;
 
@@ -36,15 +38,16 @@ pub(crate) const CYCLES_PER_SCANLINE: usize = 341;
 pub(crate) const VBLANK_SCANLINE: u16 = 241;
 pub(crate) const SCANLINES_PER_FRAME: u16 = 262;
 
-pub(crate) struct Ppu {
-    chr_rom: Vec<u8>,
-    palette_table: [u8; 32],
-    vram: [u8; 2048],
-    oam_data: [u8; 256],
+pub struct Ppu {
+    pub(super) chr_rom: Vec<u8>,
+    pub(super) palette_table: [u8; 32],
+    pub(super) vram: [u8; 2048],
+    pub(super) oam_data: [u8; 256],
+    oam_address: u8,
     mirroring: Mirroring,
-    controller_register: ControllerRegister,
+    pub(super) controller_register: ControllerRegister,
     status_register: StatusRegister,
-    nmi_interrupt: bool,
+    pub(crate) nmi_interrupt: bool,
     address_register: AddressRegister,
     internal_data_buf: u8,
     cycles: usize,
@@ -58,6 +61,7 @@ impl Ppu {
             palette_table: [0; 32],
             vram: [0; 2048],
             oam_data: [0; 256],
+            oam_address: 0,
             mirroring,
             controller_register: ControllerRegister::new(),
             status_register: StatusRegister::new(),
@@ -81,6 +85,7 @@ impl Ppu {
     pub(crate) fn read_register(&mut self, register: u16) -> u8 {
         match register {
             REG_STATUS => self.read_status(),
+            REG_OAM_DATA => self.oam_data[self.oam_address as usize],
             REG_DATA => self.read_memory(),
             _ => todo!("PPU register read: {:#06X}", register),
         }
@@ -91,6 +96,13 @@ impl Ppu {
     pub(crate) fn write_to_register(&mut self, register: u16, value: u8) {
         match register {
             REG_CONTROLLER => self.write_to_controller_register(value),
+            REG_MASK => {} // TODO: マスクレジスタの実装
+            REG_OAM_ADDR => self.oam_address = value,
+            REG_OAM_DATA => {
+                self.oam_data[self.oam_address as usize] = value;
+                self.oam_address = self.oam_address.wrapping_add(1);
+            }
+            REG_SCROLL => {} // TODO: スクロールレジスタの実装
             REG_ADDRESS => self.write_to_address_register(value),
             REG_DATA => self.write_to_memory(value),
             _ => todo!("PPU register write: {:#06X}", register),

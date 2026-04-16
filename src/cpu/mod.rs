@@ -15,7 +15,7 @@ const NMI_VECTOR: u16 = 0xFFFA;
 const RESET_VECTOR: u16 = 0xFFFC;
 const STACK_POINTER_INIT: u8 = 0xFD;
 
-pub(crate) struct Cpu<B: Bus> {
+pub struct Cpu<B: Bus> {
     pub(crate) register_a: u8,
     pub(crate) register_x: u8,
     pub(crate) register_y: u8,

@@ -40,9 +40,9 @@ impl<B: Bus> Cpu<B> {
     pub(super) fn get_operand_address(&mut self, mode: AddressingMode) -> u16 {
         match mode {
             AddressingMode::Immediate => {
-                let addr = self.program_counter;
-                self.program_counter += 1;
-                addr
+                let address = self.program_counter;
+                self.program_counter = self.program_counter.wrapping_add(1);
+                address
             }
             AddressingMode::ZeroPage => self.fetch_byte() as u16,
             AddressingMode::ZeroPage_X => {

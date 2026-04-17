@@ -13,10 +13,11 @@ impl Frame {
     }
 
     pub(crate) fn set_pixel(&mut self, x: usize, y: usize, rgb: (u8, u8, u8)) {
-        let (r, g, b) = rgb;
-        let base = (y * Self::WIDTH + x) * 3;
-        if base + 2 < self.pixel.len() {
-            self.pixel[base..base + 3].copy_from_slice(&[r, g, b]);
+        // 画面端を跨ぐスプライトの off-screen 部分はクリップする
+        if x >= Self::WIDTH || y >= Self::HEIGHT {
+            return;
         }
+        let base = (y * Self::WIDTH + x) * 3;
+        self.pixel[base..base + 3].copy_from_slice(&[rgb.0, rgb.1, rgb.2]);
     }
 }

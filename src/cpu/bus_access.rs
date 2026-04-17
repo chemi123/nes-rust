@@ -17,7 +17,7 @@ pub trait Bus {
 impl<B: Bus> Cpu<B> {
     pub(super) fn fetch_byte(&mut self) -> u8 {
         let data = self.bus.read(self.program_counter);
-        self.program_counter += 1;
+        self.program_counter = self.program_counter.wrapping_add(1);
         data
     }
 

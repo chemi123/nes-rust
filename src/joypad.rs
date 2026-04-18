@@ -15,6 +15,7 @@ bitflags! {
     // ||+------- Down
     // |+-------- Left
     // +--------- Right      ← 最後
+    #[derive(Clone, Copy, Debug)]
     pub struct JoypadButton: u8 {
         const BUTTON_A = 0b0000_0001;
         const BUTTON_B = 0b0000_0010;

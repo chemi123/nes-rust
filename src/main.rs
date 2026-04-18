@@ -9,9 +9,9 @@ fn main() {
 
     let mut screen = Screen::new();
 
-    let bus = NESBus::new(rom, move |ppu| {
+    let bus = NESBus::new(rom, move |ppu, joypad| {
         screen.update(ppu);
-        screen.poll_events();
+        screen.poll_events(joypad);
     });
 
     let mut cpu = Cpu::new(bus);

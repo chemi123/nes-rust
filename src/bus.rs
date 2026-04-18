@@ -1,5 +1,6 @@
 use crate::cartridge::{PRG_ROM_PAGE_SIZE, Rom};
 use crate::cpu::bus_access::Bus;
+use crate::joypad::Joypad;
 use crate::memory::Memory;
 use crate::ppu::Ppu;
 
@@ -14,6 +15,10 @@ const PPU_MIRROR_MASK: u16 = 0x0007;
 const APU_IO_START: u16 = 0x4000;
 const APU_IO_END: u16 = 0x401F;
 
+// APU_IO 範囲内だが個別ハンドリング
+const JOYPAD_1: u16 = 0x4016;
+const JOYPAD_2: u16 = 0x4017;
+
 pub(crate) const CARTRIDGE_START: u16 = 0x8000;
 const CARTRIDGE_END: u16 = 0xFFFF;
 
@@ -21,13 +26,14 @@ pub struct NESBus<'a> {
     memory: Memory,
     rom: Rom,
     pub(crate) ppu: Ppu,
-    gameloop_callback: Box<dyn FnMut(&Ppu) + 'a>,
+    pub(crate) joypad1: Joypad,
+    gameloop_callback: Box<dyn FnMut(&Ppu, &mut Joypad) + 'a>,
 }
 
 impl<'a> NESBus<'a> {
     pub fn new<F>(mut rom: Rom, gameloop_callback: F) -> Self
     where
-        F: FnMut(&Ppu) + 'a,
+        F: FnMut(&Ppu, &mut Joypad) + 'a,
     {
         let chr_rom = std::mem::take(&mut rom.chr_rom);
         let ppu = Ppu::new(chr_rom, rom.screen_mirroring.clone());
@@ -35,6 +41,7 @@ impl<'a> NESBus<'a> {
             memory: Memory::new(),
             rom,
             ppu,
+            joypad1: Joypad::new(),
             gameloop_callback: Box::new(gameloop_callback),
         }
     }
@@ -48,7 +55,8 @@ impl<'a> NESBus<'a> {
             memory: Memory::new(),
             rom,
             ppu,
-            gameloop_callback: Box::new(|_| {}),
+            joypad1: Joypad::new(),
+            gameloop_callback: Box::new(|_, _| {}),
         }
     }
 
@@ -68,6 +76,8 @@ impl<'a> Bus for NESBus<'a> {
             PPU_REGISTERS_START..=PPU_REGISTERS_END => {
                 self.ppu.read_register(addr & PPU_MIRROR_MASK)
             }
+            JOYPAD_1 => self.joypad1.read(),
+            JOYPAD_2 => 0,                  // 2P 未対応
             APU_IO_START..=APU_IO_END => 0, // TODO: APU
             CARTRIDGE_START..=CARTRIDGE_END => self.read_cartridge(addr),
             _ => 0,
@@ -80,6 +90,8 @@ impl<'a> Bus for NESBus<'a> {
             PPU_REGISTERS_START..=PPU_REGISTERS_END => {
                 self.ppu.write_to_register(addr & PPU_MIRROR_MASK, value)
             }
+            JOYPAD_1 => self.joypad1.write(value),
+            JOYPAD_2 => {}                  // APUフレームカウンタ兼用、未対応
             APU_IO_START..=APU_IO_END => {} // TODO: APU
             CARTRIDGE_START..=CARTRIDGE_END => {
                 panic!(
@@ -91,13 +103,14 @@ impl<'a> Bus for NESBus<'a> {
         }
     }
 
+    // TODO: cpuを含めたcallbackの見直し
     fn tick(&mut self, cycles: u8) -> bool {
         let nmi_before = self.ppu.nmi_interrupt;
         let frame_complete = self.ppu.tick(cycles as u16 * 3);
         let nmi_after = self.ppu.nmi_interrupt;
 
         if !nmi_before && nmi_after {
-            (self.gameloop_callback)(&self.ppu);
+            (self.gameloop_callback)(&self.ppu, &mut self.joypad1);
         }
 
         frame_complete

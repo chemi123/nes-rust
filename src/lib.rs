@@ -1,6 +1,7 @@
 pub mod bus;
 pub mod cartridge;
 pub mod cpu;
+pub mod joypad;
 mod memory;
 pub mod ppu;
 pub mod screen;

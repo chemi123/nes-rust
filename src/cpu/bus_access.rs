@@ -2,22 +2,10 @@ const STACK_BASE: u16 = 0x0100;
 
 use super::Cpu;
 
+// CPU から見たメモリアクセス経路 (アドレス/データバス相当)
 pub trait Bus {
     fn read(&mut self, addr: u16) -> u8;
     fn write(&mut self, addr: u16, value: u8);
-
-    // 本来クロック同期はBus（メモリアクセス）の責務ではないが、
-    // 実機では並行動作するCPUとPPUをシングルスレッドで逐次エミュレーションするため、
-    // CPUからアクセス可能な唯一の経路であるBus経由でPPUを進める必要がある。
-    // 戻り値: PPUがフレーム描画を完了した場合 true
-    fn tick(&mut self, cycles: u8) -> bool;
-    fn poll_nmi_status(&mut self) -> bool;
-
-    // ユーザから終了要求 (ウィンドウクローズ / Escape など) が来ているか。
-    // CPU run ループがこれを見て正常終了する。
-    fn should_quit(&self) -> bool {
-        false
-    }
 }
 
 impl<B: Bus> Cpu<B> {

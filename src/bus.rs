@@ -1,4 +1,5 @@
 use crate::cartridge::{PRG_ROM_PAGE_SIZE, Rom};
+use crate::cpu::Clock;
 use crate::cpu::bus_access::Bus;
 use crate::joypad::Joypad;
 use crate::memory::Memory;
@@ -23,22 +24,15 @@ const JOYPAD_2: u16 = 0x4017;
 pub(crate) const CARTRIDGE_START: u16 = 0x8000;
 const CARTRIDGE_END: u16 = 0xFFFF;
 
-pub struct NESBus<'a> {
+pub struct NESBus {
     memory: Memory,
     rom: Rom,
-    pub(crate) ppu: Ppu,
-    pub(crate) joypad1: Joypad,
-    // gameloop_callback は NMI 発生時 (≒ VBlank 開始時) に呼ばれる。
-    // 戻り値 false で CPU 側に終了要求を伝え、should_quit が true になる。
-    gameloop_callback: Box<dyn FnMut(&Ppu, &mut Joypad) -> bool + 'a>,
-    should_quit: bool,
+    ppu: Ppu,
+    joypad1: Joypad,
 }
 
-impl<'a> NESBus<'a> {
-    pub fn new<F>(mut rom: Rom, gameloop_callback: F) -> Self
-    where
-        F: FnMut(&Ppu, &mut Joypad) -> bool + 'a,
-    {
+impl NESBus {
+    pub fn new(mut rom: Rom) -> Self {
         let chr_rom = std::mem::take(&mut rom.chr_rom);
         let ppu = Ppu::new(chr_rom, rom.screen_mirroring.clone());
         NESBus {
@@ -46,8 +40,6 @@ impl<'a> NESBus<'a> {
             rom,
             ppu,
             joypad1: Joypad::new(),
-            gameloop_callback: Box::new(gameloop_callback),
-            should_quit: false,
         }
     }
 
@@ -61,9 +53,15 @@ impl<'a> NESBus<'a> {
             rom,
             ppu,
             joypad1: Joypad::new(),
-            gameloop_callback: Box::new(|_, _| true),
-            should_quit: false,
         }
+    }
+
+    pub fn ppu(&self) -> &Ppu {
+        &self.ppu
+    }
+
+    pub fn joypad1_mut(&mut self) -> &mut Joypad {
+        &mut self.joypad1
     }
 
     fn read_cartridge(&self, mut addr: u16) -> u8 {
@@ -75,7 +73,7 @@ impl<'a> NESBus<'a> {
     }
 }
 
-impl<'a> Bus for NESBus<'a> {
+impl Bus for NESBus {
     fn read(&mut self, addr: u16) -> u8 {
         match addr {
             RAM_START..=RAM_END => self.memory.read(addr & RAM_MIRROR_MASK),
@@ -119,35 +117,27 @@ impl<'a> Bus for NESBus<'a> {
             _ => {}
         }
     }
+}
 
-    // TODO: cpuを含めたcallbackの見直し
+impl Clock for NESBus {
+    // 戻り値は NMI エッジ (VBlank 開始) の立ち上がりを示す。
+    // CPU 側はこれを拾って on_frame コールバックに制御を渡す。
     fn tick(&mut self, cycles: u8) -> bool {
         let nmi_before = self.ppu.nmi_interrupt;
-        let frame_complete = self.ppu.tick(cycles as u16 * 3);
+        self.ppu.tick(cycles as u16 * 3);
         let nmi_after = self.ppu.nmi_interrupt;
-
-        if !nmi_before && nmi_after {
-            let should_continue = (self.gameloop_callback)(&self.ppu, &mut self.joypad1);
-            if !should_continue {
-                self.should_quit = true;
-            }
-        }
-
-        frame_complete
+        !nmi_before && nmi_after
     }
 
     fn poll_nmi_status(&mut self) -> bool {
         self.ppu.poll_nmi_interrupt()
-    }
-
-    fn should_quit(&self) -> bool {
-        self.should_quit
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cpu::Clock;
     use crate::cpu::bus_access::Bus;
     use crate::ppu::register::controller::ControllerRegister;
 

@@ -11,15 +11,15 @@ fn main() -> Result<(), NesError> {
     let rom = Rom::new(&bytes).map_err(NesError::RomParse)?;
 
     let mut screen = Screen::new()?;
+    let mut cpu = Cpu::new(NESBus::new(rom));
 
-    let bus = NESBus::new(rom, move |ppu, joypad| {
-        if let Err(error) = screen.update(ppu) {
+    cpu.run(|bus| {
+        if let Err(error) = screen.update(bus.ppu()) {
             log::error!("screen update failed: {}", error);
             return false;
         }
-        screen.poll_events(joypad)
-    });
+        screen.poll_events(bus.joypad1_mut())
+    })?;
 
-    let mut cpu = Cpu::new(bus);
-    cpu.run()
+    Ok(())
 }

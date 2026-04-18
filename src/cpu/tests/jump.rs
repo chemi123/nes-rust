@@ -14,7 +14,7 @@ fn test_jmp_absolute() {
     // $8004: INX (1 byte)
     // $8005: INY (1 byte)
     // $8006: BRK
-    cpu.run().unwrap();
+    cpu.run_until_break().unwrap();
     assert_eq!(cpu.register_x, 0);
     assert_eq!(cpu.register_y, 1);
 }
@@ -33,7 +33,7 @@ fn test_jmp_indirect() {
     // $8006: INX
     // $8007: INY
     // $8008: BRK
-    cpu.run().unwrap();
+    cpu.run_until_break().unwrap();
     assert_eq!(cpu.register_x, 0);
     assert_eq!(cpu.register_y, 1);
 }
@@ -46,7 +46,7 @@ fn test_jmp_indirect_page_boundary_bug() {
     cpu.bus.write(0x02FF, 0x07);
     cpu.bus.write(0x0200, 0x80); // bug: reads from $0200 instead of $0300
     cpu.bus.write(0x0300, 0x90); // this should NOT be used
-    cpu.run().unwrap();
+    cpu.run_until_break().unwrap();
     assert_eq!(cpu.register_x, 0);
     assert_eq!(cpu.register_y, 1);
 }
@@ -60,7 +60,7 @@ fn test_jsr_rts() {
     // $8004: BRK
     // $8005: INY (subroutine)
     // $8006: RTS
-    cpu.run().unwrap();
+    cpu.run_until_break().unwrap();
     assert_eq!(cpu.register_y, 1); // subroutine executed
     assert_eq!(cpu.register_x, 1); // returned and continued
 }
@@ -72,7 +72,7 @@ fn test_jsr_pushes_return_address() {
     // $8000: JSR $8005 (3 bytes) -> push $8002 (PC-1 = last byte of JSR operand)
     // $8003: BRK
     // $8005: BRK
-    cpu.run().unwrap();
+    cpu.run_until_break().unwrap();
     // SP should have decreased by 2 (pushed 16-bit address)
     assert_eq!(cpu.stack_pointer, 0xFB);
 }
@@ -98,7 +98,7 @@ fn test_nested_jsr_rts() {
     // $8009: RTS                     -> sub1: return
     // $800A: INY                     -> sub2: Y=1
     // $800B: RTS                     -> sub2: return
-    cpu.run().unwrap();
+    cpu.run_until_break().unwrap();
     assert_eq!(cpu.register_y, 1); // sub2 executed
     assert_eq!(cpu.register_x, 2); // returned through both levels
 }

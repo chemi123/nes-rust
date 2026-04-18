@@ -16,6 +16,26 @@ const NMI_VECTOR: u16 = 0xFFFA;
 const RESET_VECTOR: u16 = 0xFFFC;
 const STACK_POINTER_INIT: u8 = 0xFD;
 
+// CPU サイクルに同期して進むクロック系の責務。
+// 実機では CPU クロック境界でサンプルされる NMI ポーリングも同じ trait にまとめる。
+pub trait Clock {
+    // CPU サイクル分だけシステムを進める。
+    // 戻り値: 直前の tick で NMI が立ち上がった場合 true (VBlank 開始)
+    fn tick(&mut self, cycles: u8) -> bool;
+
+    // NMI ペンディング状態を読み取り、同時にクリアする
+    fn poll_nmi_status(&mut self) -> bool;
+}
+
+// CPU run ループの正常終了理由。fatal エラーは Err(NesError) で返る。
+#[derive(Debug, PartialEq, Eq)]
+pub enum ExitReason {
+    // BRK 命令に到達
+    Break,
+    // on_frame コールバックが false を返した (ユーザ終了要求など)
+    Halted,
+}
+
 pub struct Cpu<B: Bus> {
     pub(crate) register_a: u8,
     pub(crate) register_x: u8,
@@ -28,25 +48,36 @@ pub struct Cpu<B: Bus> {
 
 impl<B: Bus> Cpu<B> {
     pub fn new(bus: B) -> Self {
-        Cpu {
+        let mut cpu = Cpu {
             register_a: 0,
             register_x: 0,
             register_y: 0,
             processor_status: 0,
             stack_pointer: 0,
             program_counter: 0,
-            bus: bus,
-        }
+            bus,
+        };
+        cpu.reset();
+        cpu
     }
 
-    pub fn run(&mut self) -> Result<(), NesError> {
-        self.reset();
-        self.run_with_callback(|_| {})
-    }
+    fn reset(&mut self) {
+        self.register_a = 0;
+        self.register_x = 0;
+        self.register_y = 0;
+        self.processor_status = 0;
+        self.stack_pointer = STACK_POINTER_INIT;
 
-    pub fn run_with_callback<F>(&mut self, mut callback: F) -> Result<(), NesError>
+        self.program_counter = self.peek_word(RESET_VECTOR);
+    }
+}
+
+impl<B: Bus + Clock> Cpu<B> {
+    // 毎フレーム (NMI エッジ) ごとに on_frame を呼ぶ。
+    // on_frame が false を返すと ExitReason::Halted で終了する。
+    pub fn run<F>(&mut self, mut on_frame: F) -> Result<ExitReason, NesError>
     where
-        F: FnMut(&mut Cpu<B>),
+        F: FnMut(&mut B) -> bool,
     {
         loop {
             if self.bus.poll_nmi_status() {
@@ -255,7 +286,7 @@ impl<B: Bus> Cpu<B> {
                 RTI_IMPLIED => self.rti(),
 
                 // System
-                BRK => return Ok(()),
+                BRK => return Ok(ExitReason::Break),
                 // 実機の JAM opcode 相当として扱い、CPU ループを抜ける
                 _ => {
                     return Err(NesError::UnknownOpcode {
@@ -265,24 +296,17 @@ impl<B: Bus> Cpu<B> {
                 }
             }
 
-            if self.bus.tick(opcodes::cycles(opcode)) {
-                callback(self);
-            }
-
-            if self.bus.should_quit() {
-                return Ok(());
+            // tick は NMI エッジ (VBlank 開始) を true で通知する。
+            // このタイミングで host (画面描画・入力ポーリング) に制御を渡す。
+            if self.bus.tick(opcodes::cycles(opcode)) && !on_frame(&mut self.bus) {
+                return Ok(ExitReason::Halted);
             }
         }
     }
 
-    fn reset(&mut self) {
-        self.register_a = 0;
-        self.register_x = 0;
-        self.register_y = 0;
-        self.processor_status = 0;
-        self.stack_pointer = STACK_POINTER_INIT;
-
-        self.program_counter = self.peek_word(RESET_VECTOR);
+    // BRK で止まる用途向けのテスト/スクリプト用ヘルパ。
+    pub fn run_until_break(&mut self) -> Result<(), NesError> {
+        self.run(|_| true).map(|_| ())
     }
 
     pub(super) fn interrupt_nmi(&mut self) {

@@ -109,6 +109,15 @@ impl Ppu {
         }
     }
 
+    // OAM DMA ($4014 経由): 256 byte を現在の oam_address を起点に書き込む。
+    // 実機ではリングバッファ的に oam_address が一周するため wrapping_add を使う。
+    pub(crate) fn write_oam_dma(&mut self, data: &[u8; 256]) {
+        for byte in data {
+            self.oam_data[self.oam_address as usize] = *byte;
+            self.oam_address = self.oam_address.wrapping_add(1);
+        }
+    }
+
     // PPU Status (0x2002) の読み出し
     // 読み出し時にVBlankフラグをクリアし、アドレスラッチをリセットする
     fn read_status(&mut self) -> u8 {

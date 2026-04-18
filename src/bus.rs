@@ -16,6 +16,7 @@ const APU_IO_START: u16 = 0x4000;
 const APU_IO_END: u16 = 0x401F;
 
 // APU_IO 範囲内だが個別ハンドリング
+const OAM_DMA: u16 = 0x4014;
 const JOYPAD_1: u16 = 0x4016;
 const JOYPAD_2: u16 = 0x4017;
 
@@ -89,6 +90,16 @@ impl<'a> Bus for NESBus<'a> {
             RAM_START..=RAM_END => self.memory.write(addr & RAM_MIRROR_MASK, value),
             PPU_REGISTERS_START..=PPU_REGISTERS_END => {
                 self.ppu.write_to_register(addr & PPU_MIRROR_MASK, value)
+            }
+            OAM_DMA => {
+                // CPU メモリの (value << 8) から 256 byte を PPU OAM へ転送。
+                // 実機ではここで CPU が ~513 サイクル停止するが、現状はサイクル未計上。
+                let mut buffer = [0u8; 256];
+                let base = (value as u16) << 8;
+                for offset in 0..256u16 {
+                    buffer[offset as usize] = self.read(base + offset);
+                }
+                self.ppu.write_oam_dma(&buffer);
             }
             JOYPAD_1 => self.joypad1.write(value),
             JOYPAD_2 => {}                  // APUフレームカウンタ兼用、未対応

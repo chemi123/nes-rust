@@ -77,7 +77,9 @@ impl<B: Bus> Cpu<B> {
                 deref_base.wrapping_add(self.register_y as u16)
             }
             AddressingMode::Accumulator => {
-                panic!("Accumulator mode never call get_operand_address.")
+                // Accumulator モードはレジスタ直接操作なのでアドレスを持たない。
+                // 命令実装側で分岐しておりこの関数には到達しない。
+                unreachable!("Accumulator mode never calls get_operand_address")
             }
         }
     }

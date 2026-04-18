@@ -1,3 +1,4 @@
+use crate::NesError;
 use crate::joypad::{Joypad, JoypadButton};
 use crate::ppu::Ppu;
 use crate::ppu::frame::Frame;
@@ -24,23 +25,31 @@ pub struct Screen {
     key_map: HashMap<Keycode, JoypadButton>,
 }
 
+fn sdl_err<E: std::fmt::Display>(error: E) -> NesError {
+    NesError::Sdl(error.to_string())
+}
+
 impl Screen {
-    pub fn new() -> Self {
-        let sdl_context = sdl2::init().unwrap();
-        let video_subsystem = sdl_context.video().unwrap();
+    pub fn new() -> Result<Self, NesError> {
+        let sdl_context = sdl2::init().map_err(sdl_err)?;
+        let video_subsystem = sdl_context.video().map_err(sdl_err)?;
         let window = video_subsystem
             .window("NES Emulator", NES_WIDTH * SCALE, NES_HEIGHT * SCALE)
             .position_centered()
             .build()
-            .unwrap();
+            .map_err(sdl_err)?;
 
-        let canvas = window.into_canvas().present_vsync().build().unwrap();
+        let canvas = window
+            .into_canvas()
+            .present_vsync()
+            .build()
+            .map_err(sdl_err)?;
         let texture_creator = Box::leak(Box::new(canvas.texture_creator()));
         let texture = texture_creator
             .create_texture_target(PixelFormatEnum::RGB24, NES_WIDTH, NES_HEIGHT)
-            .unwrap();
+            .map_err(sdl_err)?;
 
-        let event_pump = sdl_context.event_pump().unwrap();
+        let event_pump = sdl_context.event_pump().map_err(sdl_err)?;
 
         let mut key_map = HashMap::new();
         key_map.insert(Keycode::W, JoypadButton::UP);
@@ -52,33 +61,35 @@ impl Screen {
         key_map.insert(Keycode::Space, JoypadButton::SELECT);
         key_map.insert(Keycode::Return, JoypadButton::START);
 
-        Screen {
+        Ok(Screen {
             canvas,
             texture,
             _texture_creator: texture_creator,
             event_pump,
             frame: Frame::new(),
             key_map,
-        }
+        })
     }
 
-    pub fn update(&mut self, ppu: &Ppu) {
+    pub fn update(&mut self, ppu: &Ppu) -> Result<(), NesError> {
         render(ppu, &mut self.frame);
         self.texture
             .update(None, &self.frame.pixel, NES_WIDTH as usize * 3)
-            .unwrap();
-        self.canvas.copy(&self.texture, None, None).unwrap();
+            .map_err(sdl_err)?;
+        self.canvas.copy(&self.texture, None, None).map_err(sdl_err)?;
         self.canvas.present();
+        Ok(())
     }
 
-    pub fn poll_events(&mut self, joypad: &mut Joypad) {
+    // 戻り値: ユーザが終了要求 (Quit / Escape) を出した場合 false
+    pub fn poll_events(&mut self, joypad: &mut Joypad) -> bool {
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
-                } => std::process::exit(0),
+                } => return false,
                 Event::KeyDown {
                     keycode: Some(key), ..
                 } => {
@@ -96,5 +107,6 @@ impl Screen {
                 _ => {}
             }
         }
+        true
     }
 }

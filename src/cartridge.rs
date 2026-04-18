@@ -7,14 +7,10 @@ const OFFSET_PRG_ROM_SIZE: usize = 4; // PRG ROM size in 16 KB units
 const OFFSET_CHR_ROM_SIZE: usize = 5; // CHR ROM size in 8 KB units (0 means CHR RAM)
 const OFFSET_FLAGS_6: usize = 6; // Mirroring, Battery, Trainer, Mapper Lo
 const OFFSET_FLAGS_7: usize = 7; // Mapper Hi, NES 2.0, PlayChoice-10, VS Uni
-const OFFSET_PRG_RAM_SIZE: usize = 8; // PRG RAM size in 8 KB units (rarely used in iNES 1.0)
-
 // Bitmasks for Flags 6
 const FLAG6_MIRRORING_BIT: u8 = 0b0000_0001; // Bit 0: 0=Horizontal, 1=Vertical
-const FLAG6_HAS_BATTERY: u8 = 0b0000_0010; // Bit 1: Battery-backed PRG RAM
 const FLAG6_HAS_TRAINER: u8 = 0b0000_0100; // Bit 2: 512-byte Trainer
 const FLAG6_FOUR_SCREEN_BIT: u8 = 0b0000_1000; // Bit 3: Four-screen VRAM
-const FLAG6_MAPPER_LOW_MASK: u8 = 0b1111_0000; // Bits 4-7: Mapper number (lower 4 bits)
 
 // Bitmasks for Flags 7
 const FLAG7_NES_2_0_MASK: u8 = 0b0000_1100; // Bits 2-3: If equal to 2, flags are NES 2.0

@@ -12,6 +12,12 @@ pub trait Bus {
     // 戻り値: PPUがフレーム描画を完了した場合 true
     fn tick(&mut self, cycles: u8) -> bool;
     fn poll_nmi_status(&mut self) -> bool;
+
+    // ユーザから終了要求 (ウィンドウクローズ / Escape など) が来ているか。
+    // CPU run ループがこれを見て正常終了する。
+    fn should_quit(&self) -> bool {
+        false
+    }
 }
 
 impl<B: Bus> Cpu<B> {
@@ -39,13 +45,6 @@ impl<B: Bus> Cpu<B> {
 
     pub(super) fn write_byte(&mut self, addr: u16, data: u8) {
         self.bus.write(addr, data);
-    }
-
-    pub(super) fn write_word(&mut self, position: u16, data: u16) {
-        let high = (data >> 8) as u8;
-        let low = (data & 0xff) as u8;
-        self.write_byte(position, low);
-        self.write_byte(position + 1, high);
     }
 
     pub(super) fn push_byte(&mut self, data: u8) {

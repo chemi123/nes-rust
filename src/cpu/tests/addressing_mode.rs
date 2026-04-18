@@ -20,7 +20,7 @@ fn test_indirect_x_zero_page_wrap() {
     cpu.bus.write(0x0F, 0x80);
     cpu.bus.write(0x10, 0x01);
     cpu.bus.write(0x0180, 0x42);
-    cpu.run();
+    cpu.run().unwrap();
     assert_eq!(cpu.register_a, 0x42);
 }
 
@@ -42,7 +42,7 @@ fn test_indirect_x_pointer_at_0xff() {
     cpu.bus.write(0xFF, 0x80);
     cpu.bus.write(0x00, 0x02);
     cpu.bus.write(0x0280, 0x37);
-    cpu.run();
+    cpu.run().unwrap();
     assert_eq!(cpu.register_a, 0x37);
 }
 
@@ -64,6 +64,6 @@ fn test_indirect_y_pointer_at_0xff() {
     cpu.bus.write(0xFF, 0x80);
     cpu.bus.write(0x00, 0x02);
     cpu.bus.write(0x0285, 0x99);
-    cpu.run();
+    cpu.run().unwrap();
     assert_eq!(cpu.register_a, 0x99);
 }

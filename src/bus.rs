@@ -28,13 +28,16 @@ pub struct NESBus<'a> {
     rom: Rom,
     pub(crate) ppu: Ppu,
     pub(crate) joypad1: Joypad,
-    gameloop_callback: Box<dyn FnMut(&Ppu, &mut Joypad) + 'a>,
+    // gameloop_callback は NMI 発生時 (≒ VBlank 開始時) に呼ばれる。
+    // 戻り値 false で CPU 側に終了要求を伝え、should_quit が true になる。
+    gameloop_callback: Box<dyn FnMut(&Ppu, &mut Joypad) -> bool + 'a>,
+    should_quit: bool,
 }
 
 impl<'a> NESBus<'a> {
     pub fn new<F>(mut rom: Rom, gameloop_callback: F) -> Self
     where
-        F: FnMut(&Ppu, &mut Joypad) + 'a,
+        F: FnMut(&Ppu, &mut Joypad) -> bool + 'a,
     {
         let chr_rom = std::mem::take(&mut rom.chr_rom);
         let ppu = Ppu::new(chr_rom, rom.screen_mirroring.clone());
@@ -44,6 +47,7 @@ impl<'a> NESBus<'a> {
             ppu,
             joypad1: Joypad::new(),
             gameloop_callback: Box::new(gameloop_callback),
+            should_quit: false,
         }
     }
 
@@ -57,7 +61,8 @@ impl<'a> NESBus<'a> {
             rom,
             ppu,
             joypad1: Joypad::new(),
-            gameloop_callback: Box::new(|_, _| {}),
+            gameloop_callback: Box::new(|_, _| true),
+            should_quit: false,
         }
     }
 
@@ -105,10 +110,11 @@ impl<'a> Bus for NESBus<'a> {
             JOYPAD_2 => {}                  // APUフレームカウンタ兼用、未対応
             APU_IO_START..=APU_IO_END => {} // TODO: APU
             CARTRIDGE_START..=CARTRIDGE_END => {
-                panic!(
-                    "Attempt to write to Cartridge ROM space: addr={:#06X}",
-                    addr
-                )
+                log::warn!(
+                    "ignoring write to Cartridge ROM space: addr={:#06X} value={:#04X}",
+                    addr,
+                    value
+                );
             }
             _ => {}
         }
@@ -121,7 +127,10 @@ impl<'a> Bus for NESBus<'a> {
         let nmi_after = self.ppu.nmi_interrupt;
 
         if !nmi_before && nmi_after {
-            (self.gameloop_callback)(&self.ppu, &mut self.joypad1);
+            let should_continue = (self.gameloop_callback)(&self.ppu, &mut self.joypad1);
+            if !should_continue {
+                self.should_quit = true;
+            }
         }
 
         frame_complete
@@ -129,6 +138,10 @@ impl<'a> Bus for NESBus<'a> {
 
     fn poll_nmi_status(&mut self) -> bool {
         self.ppu.poll_nmi_interrupt()
+    }
+
+    fn should_quit(&self) -> bool {
+        self.should_quit
     }
 }
 

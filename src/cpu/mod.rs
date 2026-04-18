@@ -6,6 +6,7 @@ mod opcodes;
 #[cfg(test)]
 mod tests;
 
+use crate::NesError;
 use addressing_mode::AddressingMode;
 use bus_access::Bus;
 use flags::Flag;
@@ -38,12 +39,12 @@ impl<B: Bus> Cpu<B> {
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), NesError> {
         self.reset();
-        self.run_with_callback(|_| {});
+        self.run_with_callback(|_| {})
     }
 
-    pub fn run_with_callback<F>(&mut self, mut callback: F)
+    pub fn run_with_callback<F>(&mut self, mut callback: F) -> Result<(), NesError>
     where
         F: FnMut(&mut Cpu<B>),
     {
@@ -52,6 +53,8 @@ impl<B: Bus> Cpu<B> {
                 self.interrupt_nmi();
             }
 
+            // unknown opcode の PC を正しく報告するため fetch 前の値を保持
+            let opcode_pc = self.program_counter;
             let opcode = self.fetch_byte();
 
             match opcode {
@@ -252,12 +255,22 @@ impl<B: Bus> Cpu<B> {
                 RTI_IMPLIED => self.rti(),
 
                 // System
-                BRK => return,
-                _ => todo!("opcode not implemented: {:02x}", opcode),
+                BRK => return Ok(()),
+                // 実機の JAM opcode 相当として扱い、CPU ループを抜ける
+                _ => {
+                    return Err(NesError::UnknownOpcode {
+                        opcode,
+                        pc: opcode_pc,
+                    });
+                }
             }
 
             if self.bus.tick(opcodes::cycles(opcode)) {
                 callback(self);
+            }
+
+            if self.bus.should_quit() {
+                return Ok(());
             }
         }
     }

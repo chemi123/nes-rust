@@ -87,7 +87,10 @@ impl Ppu {
             REG_STATUS => self.read_status(),
             REG_OAM_DATA => self.oam_data[self.oam_address as usize],
             REG_DATA => self.read_memory(),
-            _ => todo!("PPU register read: {:#06X}", register),
+            _ => {
+                log::warn!("unimplemented PPU register read: {:#06X}", register);
+                0
+            }
         }
     }
 
@@ -105,7 +108,13 @@ impl Ppu {
             REG_SCROLL => {} // TODO: スクロールレジスタの実装
             REG_ADDRESS => self.write_to_address_register(value),
             REG_DATA => self.write_to_memory(value),
-            _ => todo!("PPU register write: {:#06X}", register),
+            _ => {
+                log::warn!(
+                    "unimplemented PPU register write: {:#06X} value={:#04X}",
+                    register,
+                    value
+                );
+            }
         }
     }
 

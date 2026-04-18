@@ -7,7 +7,7 @@ use crate::cpu::opcodes::*;
 fn test_nop_does_nothing() {
     let mut cpu = Cpu::new(NESBus::with_program(&[NOP_IMPLIED, NOP_IMPLIED, INX_IMPLIED, BRK]));
     // NOP should not change any state, INX after to verify execution continues
-    cpu.run();
+    cpu.run().unwrap();
     assert_eq!(cpu.register_x, 1);
     assert_eq!(cpu.register_a, 0);
     assert_eq!(cpu.register_y, 0);
